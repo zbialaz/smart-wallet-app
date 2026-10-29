@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Dependencies & build artifacts
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+.env*.local
