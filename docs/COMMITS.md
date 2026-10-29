@@ -16,6 +16,8 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 | 6 | `aaf768e` | `feat(infra,store): add SQLite schema migrations, default seeds, and Zustand wallet store` | Banco de dados SQLite e estado global Zustand |
 | 7 | `bb37204` | `feat(ui): build organic editorial design system, components, donut chart, and wallet pocket` | Design System, componentes visuais e gráficos |
 | 8 | `7087799` | `feat(app): implement Expo Router screens for onboarding, dashboard, accounts, and transactions` | Rotas, fluxos de tela e formulários do MVP |
+| 9 | `ea60c4b` | `docs: document project architecture, MVP status, and commit history` | Documentação geral no `README.md` e `COMMITS.md` |
+| 10 | `HEAD` | `refactor(repo): move mobile app files directly to repository root` | Remoção da subpasta `mobile/`, deixando o app na raiz do repositório |
 
 ---
 
@@ -114,3 +116,11 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 - **Tela Extrato (`(tabs)/transactions.tsx`):** Lista seccionada por data com soma diária e acesso rápido à edição.
 - **Tela Contas (`(tabs)/accounts.tsx`):** Patrimônio consolidado e cartões individuais por banco com saldo calculado em tempo real.
 - **Modal de Transação (`transaction-form.tsx`):** Criação, edição e exclusão com confirmação (`ConfirmSheet`) para gastos e receitas (`US-001` a `US-004`).
+
+---
+
+### 8. `refactor(repo): move mobile app files directly to repository root`
+**O que foi entregue:**
+- Todos os arquivos de código (`src/`), configuração (`package.json`, `tsconfig.json`, `app.json`, `metro.config.js`, `vitest.config.mts`) e `assets/` foram movidos de `mobile/` diretamente para a raiz do repositório (`smart-wallet-app/`).
+- Remoção do diretório intermediário `mobile/` e do `mobile/README.md` duplicado do template Expo, mantendo o `README.md` principal na raiz.
+

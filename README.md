@@ -32,19 +32,18 @@ smart-wallet-app/
 │   ├── fase_01_discovery_user_stories.md # Mapa de funcionalidades, 20+ User Stories e MoSCoW
 │   ├── fase_02_arquitetura_ddd.md      # Linguagem Ubíqua, Bounded Contexts e Regras (RN-01..RN-11)
 │   └── COMMITS.md                      # Documentação detalhada dos commits e entregas
-└── mobile/                             # App React Native (Expo Router)
-    ├── src/
-    │   ├── shared/                     # Primitivos: Money (centavos inteiros), ISODate, Result, DomainError
-    │   ├── domains/                    # Bounded Contexts (regras puras, repositórios e testes)
-    │   │   ├── accounts/               # Contas bancárias e cálculo de saldo (RN-05, RN-07, RN-11)
-    │   │   ├── categories/             # Categorias padrão e personalizadas (RN-09)
-    │   │   ├── transactions/           # CRUD e validação de transações (RN-01..RN-06, RN-10)
-    │   │   └── dashboard/              # Agregações mensais e gráfico por categoria (<3% -> Outros)
-    │   ├── infrastructure/database/    # Migrations SQLite (PRAGMA user_version) e seeds iniciais
-    │   ├── store/                      # Zustand store + seletores reativos
-    │   ├── ui/                         # Design System Editorial Orgânico (Warm Paper, Sand & Terracotta)
-    │   └── app/                        # Rotas Expo Router ((tabs), onboarding, modais de formulário)
-    └── vitest.config.mts               # Configuração de testes unitários de domínio
+├── src/
+│   ├── shared/                         # Primitivos: Money (centavos inteiros), ISODate, Result, DomainError
+│   ├── domains/                        # Bounded Contexts (regras puras, repositórios e testes)
+│   │   ├── accounts/                   # Contas bancárias e cálculo de saldo (RN-05, RN-07, RN-11)
+│   │   ├── categories/                 # Categorias padrão e personalizadas (RN-09)
+│   │   ├── transactions/               # CRUD e validação de transações (RN-01..RN-06, RN-10)
+│   │   └── dashboard/                  # Agregações mensais e gráfico por categoria (<3% -> Outros)
+│   ├── infrastructure/database/        # Migrations SQLite (PRAGMA user_version) e seeds iniciais
+│   ├── store/                          # Zustand store + seletores reativos
+│   ├── ui/                             # Design System Editorial Orgânico (Warm Paper, Sand & Terracotta)
+│   └── app/                            # Rotas Expo Router ((tabs), onboarding, modais de formulário)
+└── vitest.config.mts                   # Configuração de testes unitários de domínio
 ```
 
 ---
@@ -64,8 +63,6 @@ smart-wallet-app/
 ## 🚀 Como Executar
 
 ```bash
-cd mobile
-
 # Instalar dependências
 npm install
 
@@ -92,3 +89,5 @@ Veja a documentação detalhada de cada commit em [`docs/COMMITS.md`](./docs/COM
 | `aaf768e` | `feat(infra,store)` | Migrations SQLite, seeds de categorias padrão e store Zustand |
 | `bb37204` | `feat(ui)` | Design System Editorial Orgânico, `DonutChart` e `WalletPocket` |
 | `7087799` | `feat(app)` | Telas Expo Router: Onboarding, Dashboard, Contas e Extrato de Transações |
+| `ea60c4b` | `docs` | Documentação da arquitetura, status do MVP e histórico de commits |
+| `HEAD` | `refactor(repo)` | Move arquivos da subpasta `mobile/` diretamente para a raiz do repositório |
