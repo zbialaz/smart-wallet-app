@@ -3,11 +3,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useCategoryBreakdown, useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
-import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
+import { EmptyState, Fab, FadeIn, Screen, ThemeToggleButton } from '@/ui/components';
 import { DonutChart } from '@/ui/donut-chart';
 import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
-import { colors, spacing } from '@/ui/theme';
+import { spacing, useTheme } from '@/ui/theme';
 import { WalletPocket } from '@/ui/wallet-pocket';
 
 /**
@@ -17,6 +17,7 @@ import { WalletPocket } from '@/ui/wallet-pocket';
  */
 export default function DashboardScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const month = useWallet((s) => s.selectedMonth);
   const setMonth = useWallet((s) => s.setMonth);
   const transactions = useWallet((s) => s.transactions);
@@ -31,9 +32,12 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
         
-        {/* Seletor de Período Discreto */}
-        <FadeIn>
-          <MonthSwitcher month={month} onChange={setMonth} />
+        {/* Cabeçalho: Seletor de Período + Alternância de Modo Claro/Noturno (US-020) */}
+        <FadeIn style={styles.topBarRow}>
+          <View style={{ flex: 1 }}>
+            <MonthSwitcher month={month} onChange={setMonth} />
+          </View>
+          <ThemeToggleButton />
         </FadeIn>
 
         {/* A Carteira Real: Slots de Cartões de Banco + Bolso em Couro com Saldo */}
@@ -47,7 +51,7 @@ export default function DashboardScreen() {
         </FadeIn>
 
         {/* Divisor Delicado */}
-        <View style={styles.thinDivider} />
+        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
 
         {/* Gráfico de Distribuição */}
         <FadeIn delay={120} style={styles.section}>
@@ -67,7 +71,7 @@ export default function DashboardScreen() {
         </FadeIn>
 
         {/* Divisor Delicado */}
-        <View style={styles.thinDivider} />
+        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
 
         {/* Lista de Transações */}
         <FadeIn delay={180} style={styles.section}>
@@ -119,9 +123,13 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
     gap: spacing.xl,
   },
+  topBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   thinDivider: {
     height: 1,
-    backgroundColor: colors.border,
   },
   section: {
     gap: spacing.md,

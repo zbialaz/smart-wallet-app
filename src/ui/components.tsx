@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -17,9 +17,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Money } from '@/shared/money';
+import { useWallet } from '@/store/wallet-store';
 
 import { Text } from './text';
-import { colors, radius, spacing } from './theme';
+import { radius, spacing, useTheme, type ThemeColors } from './theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -33,10 +34,48 @@ export function Screen({
   edges?: ('top' | 'bottom')[];
   style?: StyleProp<ViewStyle>;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <SafeAreaView edges={edges} style={[styles.screen, style]}>
       {children}
     </SafeAreaView>
+  );
+}
+
+/** Botão de alternância de Tema Claro / Escuro (US-020). */
+export function ThemeToggleButton({ testID = 'theme-toggle' }: { testID?: string }) {
+  const { colors, isDark } = useTheme();
+  const toggleTheme = useWallet((s) => s.toggleTheme);
+
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={isDark ? 'Ativar modo claro' : 'Ativar modo noturno'}
+      onPress={() => toggleTheme(isDark)}
+      hitSlop={10}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.md,
+        height: 36,
+        borderRadius: radius.pill,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.borderStrong,
+        transform: [{ scale: pressed ? 0.95 : 1 }],
+      })}>
+      <Ionicons
+        name={isDark ? 'sunny' : 'moon'}
+        size={15}
+        color={colors.primary}
+      />
+      <Text variant="caption" style={{ color: colors.text, fontWeight: '700', fontSize: 12 }}>
+        {isDark ? 'Claro' : 'Noturno'}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -50,6 +89,8 @@ export function Card({
   style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'inset' | 'accent';
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const cardStyle = variant === 'inset' ? styles.cardInset : styles.card;
   return <View style={[cardStyle, style]}>{children}</View>;
 }
@@ -74,6 +115,9 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const bg = {
     primary: colors.primary,
     secondary: colors.surfaceRaised,
@@ -112,6 +156,9 @@ export function Button({
 
 /** Botão flutuante refinado (+ nova transação) com acabamento squircle editorial. */
 export function Fab({ onPress, testID }: { onPress: () => void; testID?: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Pressable
       testID={testID}
@@ -136,7 +183,7 @@ export function Chip({
   label,
   selected,
   onPress,
-  color = colors.primary,
+  color,
   icon,
 }: {
   label: string;
@@ -145,18 +192,22 @@ export function Chip({
   color?: string;
   icon?: IconName;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const chipColor = color ?? colors.primary;
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
         selected && {
-          backgroundColor: color + '1A',
-          borderColor: color,
+          backgroundColor: chipColor + '26',
+          borderColor: chipColor,
         },
         pressed && { opacity: 0.75 },
       ]}>
-      {icon && <Ionicons name={icon} size={15} color={selected ? color : colors.textMuted} />}
+      {icon && <Ionicons name={icon} size={15} color={selected ? chipColor : colors.textMuted} />}
       <Text
         variant="caption"
         style={{
@@ -185,9 +236,9 @@ export function IconBadge({
         width: size,
         height: size,
         borderRadius: size * 0.35, // Formato squircle moderno
-        backgroundColor: color + '18',
+        backgroundColor: color + '22',
         borderWidth: 1,
-        borderColor: color + '26',
+        borderColor: color + '33',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
@@ -223,9 +274,13 @@ export function Field({
 
 export function TextField(props: TextInputProps & { invalid?: boolean }) {
   const { invalid, style, ...rest } = props;
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TextInput
       placeholderTextColor={colors.textFaint}
+      keyboardAppearance={isDark ? 'dark' : 'light'}
       {...rest}
       style={[styles.input, invalid && { borderColor: colors.expense }, style]}
     />
@@ -248,6 +303,9 @@ export function AmountInput({
   autoFocus?: boolean;
   invalid?: boolean;
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={[styles.amountBox, invalid && { borderColor: colors.expense }]}>
       <Text variant="heading" style={{ color: accent, opacity: 0.85, fontWeight: '800' }}>
@@ -260,6 +318,7 @@ export function AmountInput({
         placeholder="0,00"
         placeholderTextColor={colors.textFaint}
         keyboardType="number-pad"
+        keyboardAppearance={isDark ? 'dark' : 'light'}
         autoFocus={autoFocus}
         style={[styles.amountText, { color: accent }]}
       />
@@ -283,6 +342,9 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
@@ -318,6 +380,9 @@ export function EmptyState({
   message: string;
   action?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.empty}>
       <IconBadge icon={icon} color={colors.primary} size={56} />
@@ -365,148 +430,148 @@ export function FadeIn({
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    // Sombra suave difusa com tom quente
-    ...Platform.select({
-      ios: {
-        shadowColor: '#362419',
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-      },
-      android: {
-        elevation: 1,
-      },
-      default: {},
-    }),
-  },
-  cardInset: {
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
-  button: {
-    minHeight: 50,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  buttonPrimaryShadow: {
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 5 },
-      },
-      android: {
-        elevation: 3,
-      },
-      default: {},
-    }),
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.xl,
-    bottom: spacing.xl + 4,
-    width: 58,
-    height: 58,
-    borderRadius: 20, // Squircle elegante
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#6B3113',
-        shadowOpacity: 0.35,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-      },
-      android: {
-        elevation: 6,
-      },
-      default: {},
-    }),
-  },
-  fabGradient: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs + 2,
-    paddingHorizontal: spacing.md + 2,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  input: {
-    minHeight: 50,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  amountBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md + 2,
-  },
-  amountText: {
-    flex: 1,
-    fontSize: 38,
-    fontWeight: '800',
-    letterSpacing: -1,
-    padding: 0,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  dialog: {
-    width: '100%',
-    maxWidth: 400,
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-  },
-  empty: {
-    alignItems: 'center',
-    gap: spacing.sm + 2,
-    paddingVertical: spacing.xxl,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.lg,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+        },
+        android: {
+          elevation: 1,
+        },
+        default: {},
+      }),
+    },
+    cardInset: {
+      backgroundColor: colors.surfaceRaised,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.md,
+    },
+    button: {
+      minHeight: 50,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.xl,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    buttonPrimaryShadow: {
+      ...Platform.select({
+        ios: {
+          shadowColor: colors.primary,
+          shadowOpacity: 0.28,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 5 },
+        },
+        android: {
+          elevation: 3,
+        },
+        default: {},
+      }),
+    },
+    fab: {
+      position: 'absolute',
+      right: spacing.xl,
+      bottom: spacing.xl + 4,
+      width: 58,
+      height: 58,
+      borderRadius: 20, // Squircle elegante
+      overflow: 'hidden',
+      ...Platform.select({
+        ios: {
+          shadowColor: '#6B3113',
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+        },
+        android: {
+          elevation: 6,
+        },
+        default: {},
+      }),
+    },
+    fabGradient: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs + 2,
+      paddingHorizontal: spacing.md + 2,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    input: {
+      minHeight: 50,
+      borderRadius: radius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.lg,
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    amountBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md + 2,
+    },
+    amountText: {
+      flex: 1,
+      fontSize: 38,
+      fontWeight: '800',
+      letterSpacing: -1,
+      padding: 0,
+    },
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    dialog: {
+      width: '100%',
+      maxWidth: 400,
+      gap: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      padding: spacing.xl,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+    },
+    empty: {
+      alignItems: 'center',
+      gap: spacing.sm + 2,
+      paddingVertical: spacing.xxl,
+    },
+  });

@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "smartwallet",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#F7F4EE",
     "android": {
       "adaptiveIcon": {

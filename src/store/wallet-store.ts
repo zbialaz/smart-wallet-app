@@ -22,6 +22,7 @@ import { createTransactionRepository } from '@/domains/transactions/transaction-
 import { currentYearMonth, today, type YearMonth } from '@/shared/date';
 import { generateId, nowISO } from '@/shared/id';
 import { fail, ok, type FieldErrors, type Result } from '@/shared/result';
+import { useThemeStore, type ThemeMode } from '@/ui/theme';
 
 /**
  * WALLET STORE — a camada de APLICAÇÃO (casos de uso).
@@ -41,10 +42,12 @@ type Repositories = {
 };
 
 interface WalletState {
+  db: SQLiteDatabase | null;
   repos: Repositories | null;
   status: 'idle' | 'loading' | 'ready' | 'error';
   errorMessage: string | null;
 
+  themeMode: ThemeMode;
   selectedMonth: YearMonth;
   accounts: AccountWithBalance[];
   categories: Category[];
@@ -54,6 +57,8 @@ interface WalletState {
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
   setMonth(month: YearMonth): Promise<void>;
+  setThemeMode(mode: ThemeMode): Promise<void>;
+  toggleTheme(currentlyDark: boolean): Promise<void>;
 
   createAccount(draft: AccountDraft): Promise<Result<Account, FieldErrors<AccountField>>>;
   /** Cria (sem id) ou edita (com id) uma transação — US-001, US-002, US-003. */
@@ -73,9 +78,11 @@ export const useWallet = create<WalletState>()((set, get) => {
   };
 
   return {
+    db: null,
     repos: null,
     status: 'idle',
     errorMessage: null,
+    themeMode: 'system',
     selectedMonth: currentYearMonth(),
     accounts: [],
     categories: [],
@@ -83,6 +90,7 @@ export const useWallet = create<WalletState>()((set, get) => {
 
     async init(db) {
       set({
+        db,
         status: 'loading',
         repos: {
           accounts: createAccountRepository(db),
@@ -91,11 +99,38 @@ export const useWallet = create<WalletState>()((set, get) => {
         },
       });
       try {
+        const savedTheme = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'theme_mode'`,
+        );
+        if (
+          savedTheme &&
+          (savedTheme.value === 'light' || savedTheme.value === 'dark' || savedTheme.value === 'system')
+        ) {
+          useThemeStore.getState().setMode(savedTheme.value);
+          set({ themeMode: savedTheme.value });
+        }
         await get().refresh();
         set({ status: 'ready' });
       } catch (e) {
         set({ status: 'error', errorMessage: e instanceof Error ? e.message : String(e) });
       }
+    },
+
+    async setThemeMode(mode) {
+      useThemeStore.getState().setMode(mode);
+      set({ themeMode: mode });
+      const db = get().db;
+      if (db) {
+        await db.runAsync(
+          `INSERT OR REPLACE INTO settings (key, value) VALUES ('theme_mode', ?)`,
+          mode,
+        );
+      }
+    },
+
+    async toggleTheme(currentlyDark) {
+      const next: ThemeMode = currentlyDark ? 'light' : 'dark';
+      await get().setThemeMode(next);
     },
 
     /** Recarrega tudo do banco. Simples e suficiente para centenas de transações/mês. */

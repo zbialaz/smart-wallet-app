@@ -11,10 +11,11 @@ import { Money } from '@/shared/money';
 import type { FieldErrors } from '@/shared/result';
 import { useWallet } from '@/store/wallet-store';
 import { AmountInput, Button, Chip, Field, TextField } from '@/ui/components';
-import { colors, spacing } from '@/ui/theme';
+import { spacing, useTheme } from '@/ui/theme';
 
 /** Formulário de conta, usado no onboarding (US-023) e em "Adicionar conta" (US-007). */
 export function AccountForm({ submitLabel, onDone }: { submitLabel: string; onDone: () => void }) {
+  const { colors } = useTheme();
   const createAccount = useWallet((s) => s.createAccount);
 
   const [name, setName] = useState('');

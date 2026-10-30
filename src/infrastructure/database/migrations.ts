@@ -63,6 +63,15 @@ const MIGRATIONS: Migration[] = [
       );
     }
   },
+  // v2 — preferências do usuário (US-020: tema claro/escuro persistido)
+  async (db) => {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+    `);
+  },
 ];
 
 export const DATABASE_NAME = 'smart-wallet.db';

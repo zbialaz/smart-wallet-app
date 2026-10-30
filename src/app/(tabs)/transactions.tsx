@@ -4,14 +4,15 @@ import { SectionList, View } from 'react-native';
 import { formatRelativeDate } from '@/shared/date';
 import type { Transaction } from '@/domains/transactions/transaction';
 import { useWallet } from '@/store/wallet-store';
-import { EmptyState, Fab, Screen, Button } from '@/ui/components';
+import { EmptyState, Fab, Screen, Button, ThemeToggleButton } from '@/ui/components';
 import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
-import { colors, spacing } from '@/ui/theme';
+import { spacing, useTheme } from '@/ui/theme';
 
 /** Lista completa do mês, agrupada por dia. Tocar abre os detalhes/edição (US-003.1). */
 export default function TransactionsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const month = useWallet((s) => s.selectedMonth);
   const setMonth = useWallet((s) => s.setMonth);
   const transactions = useWallet((s) => s.transactions);
@@ -27,7 +28,10 @@ export default function TransactionsScreen() {
   return (
     <Screen>
       <View style={{ padding: spacing.xl, gap: spacing.lg }}>
-        <Text variant="title">Transações</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text variant="title">Transações</Text>
+          <ThemeToggleButton />
+        </View>
         <MonthSwitcher month={month} onChange={setMonth} />
       </View>
 
@@ -36,7 +40,7 @@ export default function TransactionsScreen() {
         keyExtractor={(t) => t.id}
         contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: 120, flexGrow: 1 }}
         stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => (
+        renderSectionHeader={({ section }: { section: { date: string; data: Transaction[] } }) => (
           <Text variant="label" color="textMuted" style={{ marginTop: spacing.lg, marginBottom: spacing.xs }}>
             {formatRelativeDate(section.date)}
           </Text>

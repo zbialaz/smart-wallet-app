@@ -12,7 +12,7 @@ import {
 import type { AccountWithBalance } from '@/domains/accounts/account';
 import type { Money } from '@/shared/money';
 import { Text } from '@/ui/text';
-import { radius, spacing } from '@/ui/theme';
+import { radius, spacing, useTheme } from '@/ui/theme';
 
 interface WalletPocketProps {
   consolidated: Money;
@@ -55,11 +55,16 @@ export function WalletPocket({
   accounts,
 }: WalletPocketProps) {
   const router = useRouter();
+  const { isDark } = useTheme();
   const cardWidth = getCardWidth(accounts.length);
 
   return (
     <View style={styles.container}>
-      <View style={styles.leatherMainShell}>
+      <View
+        style={[
+          styles.leatherMainShell,
+          isDark && { borderColor: 'rgba(212, 123, 74, 0.35)' },
+        ]}>
         <ImageBackground
           source={require('@/assets/textures/leather.jpg')}
           resizeMode="cover"

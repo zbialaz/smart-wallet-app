@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatRelativeDate } from '@/shared/date';
@@ -8,7 +9,7 @@ import { useAccountMap, useCategoryMap } from '@/store/selectors';
 
 import { IconBadge } from './components';
 import { Text } from './text';
-import { colors, radius, spacing } from './theme';
+import { radius, spacing, useTheme, type ThemeColors } from './theme';
 
 /**
  * Seletor de mês estilo "Cápsula Editorial"
@@ -21,6 +22,8 @@ export function MonthSwitcher({
   month: YearMonth;
   onChange: (m: YearMonth) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isCurrent = month >= currentYearMonth();
 
   return (
@@ -67,6 +70,8 @@ export function TransactionRow({
   transaction: Transaction;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const categories = useCategoryMap();
   const accounts = useAccountMap();
   const category = categories.get(transaction.categoryId);
@@ -115,56 +120,57 @@ export function TransactionRow({
   );
 }
 
-const styles = StyleSheet.create({
-  switcherContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  monthLabelArea: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  monthText: {
-    fontSize: 14,
-    color: colors.text,
-    letterSpacing: -0.2,
-  },
-  arrowButton: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceRaised,
-  },
-  arrowPressed: {
-    backgroundColor: colors.surfacePressed,
-    transform: [{ scale: 0.95 }],
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.md,
-  },
-  rowPressed: {
-    backgroundColor: colors.surfaceRaised,
-  },
-  rowDetails: {
-    flex: 1,
-    gap: 3,
-  },
-  rowAmountCol: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    switcherContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    monthLabelArea: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    monthText: {
+      fontSize: 14,
+      color: colors.text,
+      letterSpacing: -0.2,
+    },
+    arrowButton: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceRaised,
+    },
+    arrowPressed: {
+      backgroundColor: colors.surfacePressed,
+      transform: [{ scale: 0.95 }],
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xs,
+      borderRadius: radius.md,
+    },
+    rowPressed: {
+      backgroundColor: colors.surfaceRaised,
+    },
+    rowDetails: {
+      flex: 1,
+      gap: 3,
+    },
+    rowAmountCol: {
+      alignItems: 'flex-end',
+      gap: 2,
+    },
+  });

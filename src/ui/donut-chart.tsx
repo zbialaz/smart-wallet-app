@@ -7,7 +7,7 @@ import { formatShare } from '@/domains/dashboard/summary';
 import { Money } from '@/shared/money';
 
 import { Text } from './text';
-import { colors, radius, spacing } from './theme';
+import { radius, spacing, useTheme } from './theme';
 
 const SIZE = 200;
 const STROKE = 26;
@@ -19,6 +19,7 @@ const C = 2 * Math.PI * R;
  * Tocar numa fatia (ou na legenda) mostra valor e porcentagem no centro.
  */
 export function DonutChart({ slices, total }: { slices: CategorySlice[]; total: Money }) {
+  const { colors } = useTheme();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = slices.find((s) => s.categoryId === selectedId) ?? null;
 

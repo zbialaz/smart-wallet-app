@@ -19,7 +19,7 @@ import {
   TextField,
 } from '@/ui/components';
 import { Text } from '@/ui/text';
-import { accentFor, colors, radius, spacing } from '@/ui/theme';
+import { radius, spacing, useTheme } from '@/ui/theme';
 
 /**
  * Formulário de transação — US-001 (gasto), US-002 (receita), US-003 (editar), US-004 (excluir).
@@ -28,6 +28,7 @@ import { accentFor, colors, radius, spacing } from '@/ui/theme';
  */
 export default function TransactionFormScreen() {
   const router = useRouter();
+  const { colors, accentFor } = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
 

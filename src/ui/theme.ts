@@ -1,15 +1,20 @@
+import { useColorScheme } from 'react-native';
+import { create } from 'zustand';
+
 /**
- * DESIGN TOKENS — Estética Orgânica & Editorial (Warm Paper, Sand & Terracotta)
- * 
- * Substitui o preto/neon genérico por uma paleta acolhedora, artesanal e sofisticada:
- * - Fundo Linho/Areia suave
- * - Cartões Creme com bordas sutis com pigmento café
- * - Textos em Cacau/Espresso profundo (sem preto cru #000)
- * - Terracota / Couro Caramelo como cor de destaque
- * - Verde Sálvia Botânico para Receitas e Cereja Queimado para Gastos
+ * DESIGN TOKENS — Estética Orgânica & Editorial
+ *
+ * - Modo Claro (Warm Paper, Sand & Terracotta):
+ *   Fundo linho/areia suave, cartões creme, textos em cacau/espresso profundo,
+ *   destaque em terracota, verde sálvia para receitas e cereja queimado para gastos.
+ *
+ * - Modo Escuro / Noturno (Nocturnal Espresso, Dark Leather & Warm Amber):
+ *   Fundo café torrado/nogueira escura, cartões em mogno escuro aveludado,
+ *   textos em pergaminho quente, terracota luminoso e tons botânicos calibrados
+ *   para alto conforto visual à noite (US-020).
  */
 
-export const colors = {
+export const lightColors = {
   // Fundos & Superfícies (Warm Paper & Cream)
   background: '#F7F4EE',        // Linho suave / Areia clara
   surface: '#FFFFFF',           // Papel branco macio
@@ -36,6 +41,67 @@ export const colors = {
   white: '#FFFFFF',
   overlay: 'rgba(39, 32, 27, 0.65)',
 } as const;
+
+export const darkColors: ThemeColors = {
+  // Fundos & Superfícies (Nocturnal Espresso & Dark Leather)
+  background: '#14110F',        // Café torrado / Nogueira profunda
+  surface: '#1F1A17',           // Mogno escuro aveludado para cartões
+  surfaceRaised: '#2A231F',     // Cacau elevado para controles e relevo
+  surfacePressed: '#352C27',    // Tom de toque noturno
+  border: 'rgba(239, 227, 213, 0.09)',       // Borda sutil em pergaminho
+  borderStrong: 'rgba(239, 227, 213, 0.18)', // Borda destacada noturna
+
+  // Tipografia (Pergaminho & Areia Quente)
+  text: '#F2ECE4',              // Pergaminho claro / Creme suave
+  textMuted: '#A89C91',         // Pedra morna / Taupe claro
+  textFaint: '#6E635A',         // Terra sombra para placeholders
+
+  // Destaque Primário (Terracota Luminoso & Âmbar)
+  primary: '#D47B4A',           // Terracota âmbar luminoso
+  primarySoft: 'rgba(212, 123, 74, 0.18)',
+
+  // Finanças Orgânicas Noturnas
+  income: '#4CA97C',            // Sálvia luminosa
+  incomeSoft: 'rgba(76, 169, 124, 0.18)',
+  expense: '#E0665A',           // Coral terracota / Cereja suave
+  expenseSoft: 'rgba(224, 102, 90, 0.18)',
+
+  white: '#FFFFFF',
+  overlay: 'rgba(8, 6, 5, 0.78)',
+};
+
+export type ColorToken = keyof typeof lightColors;
+export type ThemeColors = { [K in ColorToken]: string };
+export type ThemeMode = 'system' | 'light' | 'dark';
+
+/** Export estático padrão (compatibilidade) */
+export const colors: ThemeColors = lightColors;
+
+interface ThemeStoreState {
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
+}
+
+export const useThemeStore = create<ThemeStoreState>()((set) => ({
+  mode: 'system',
+  setMode: (mode) => set({ mode }),
+}));
+
+/** Hook reativo de tema (US-020): retorna a paleta ativa (clara ou escura) e estado do modo noturno. */
+export function useTheme() {
+  const mode = useThemeStore((s) => s.mode);
+  const systemScheme = useColorScheme();
+  const isDark = mode === 'dark' || (mode === 'system' && systemScheme === 'dark');
+  const activeColors = isDark ? darkColors : lightColors;
+
+  return {
+    colors: activeColors,
+    isDark,
+    mode,
+    accentFor: (type: 'expense' | 'income') =>
+      type === 'income' ? activeColors.income : activeColors.expense,
+  };
+}
 
 export const gradients = {
   // Card de Saldo Consolidado estilo "Carteira de Couro / Terracota"
@@ -74,8 +140,7 @@ export const typography = {
 } as const;
 
 export type TypographyVariant = keyof typeof typography;
-export type ColorToken = keyof typeof colors;
 
 /** Cor de destaque por tipo de transação (receita = verde sálvia, gasto = cereja terracota) */
 export const accentFor = (type: 'expense' | 'income') =>
-  type === 'income' ? colors.income : colors.expense;
+  type === 'income' ? lightColors.income : lightColors.expense;

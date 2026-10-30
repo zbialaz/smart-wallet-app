@@ -8,7 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DATABASE_NAME, migrateDatabase } from '@/infrastructure/database/migrations';
 import { useWallet } from '@/store/wallet-store';
 import { Text } from '@/ui/text';
-import { colors } from '@/ui/theme';
+import { useTheme } from '@/ui/theme';
 
 /**
  * Raiz do app. Ordem de inicialização:
@@ -17,9 +17,11 @@ import { colors } from '@/ui/theme';
  *   → só então as telas são renderizadas.
  */
 export default function RootLayout() {
+  const { isDark } = useTheme();
+
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrateDatabase}>
         <Bootstrap />
       </SQLiteProvider>
@@ -29,12 +31,22 @@ export default function RootLayout() {
 
 function Bootstrap() {
   const db = useSQLiteContext();
+  const { colors } = useTheme();
   const status = useWallet((s) => s.status);
   const errorMessage = useWallet((s) => s.errorMessage);
 
   useEffect(() => {
     useWallet.getState().init(db);
   }, [db]);
+
+  const centered = {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 12,
+    padding: 32,
+    backgroundColor: colors.background,
+  };
 
   if (status === 'error') {
     return (
@@ -64,12 +76,3 @@ function Bootstrap() {
     </Stack>
   );
 }
-
-const centered = {
-  flex: 1,
-  alignItems: 'center' as const,
-  justifyContent: 'center' as const,
-  gap: 12,
-  padding: 32,
-  backgroundColor: colors.background,
-};

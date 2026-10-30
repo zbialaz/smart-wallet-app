@@ -17,6 +17,7 @@ Aplicativo mobile offline-first de controle financeiro pessoal para consolidar m
 | **US-010** | Categorias padrão pré-configuradas (12 categorias) | `categories` | ✅ Implementado |
 | **US-012** | Resumo financeiro do mês (receitas, gastos, saldo) | `dashboard` | ✅ Implementado |
 | **US-013** | Gráfico Donut interativo de gastos por categoria | `dashboard` | ✅ Implementado |
+| **US-020** | Modo Claro e Modo Noturno / Dark Mode (com persistência) | `settings / ui` | ✅ Implementado |
 | **US-023** | Onboarding na primeira abertura (1ª conta + saldo inicial) | `accounts` | ✅ Implementado |
 
 ---
@@ -90,4 +91,5 @@ Veja a documentação detalhada de cada commit em [`docs/COMMITS.md`](./docs/COM
 | `bb37204` | `feat(ui)` | Design System Editorial Orgânico, `DonutChart` e `WalletPocket` |
 | `7087799` | `feat(app)` | Telas Expo Router: Onboarding, Dashboard, Contas e Extrato de Transações |
 | `ea60c4b` | `docs` | Documentação da arquitetura, status do MVP e histórico de commits |
-| `HEAD` | `refactor(repo)` | Move arquivos da subpasta `mobile/` diretamente para a raiz do repositório |
+| `c32404f` | `refactor(repo)` | Move arquivos da subpasta `mobile/` diretamente para a raiz do repositório |
+| `HEAD` | `feat(ui,theme)` | Implementa Modo Noturno / Dark Mode orgânico (`US-020`) com persistência SQLite |

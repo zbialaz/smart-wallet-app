@@ -17,7 +17,8 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 | 7 | `bb37204` | `feat(ui): build organic editorial design system, components, donut chart, and wallet pocket` | Design System, componentes visuais e gráficos |
 | 8 | `7087799` | `feat(app): implement Expo Router screens for onboarding, dashboard, accounts, and transactions` | Rotas, fluxos de tela e formulários do MVP |
 | 9 | `ea60c4b` | `docs: document project architecture, MVP status, and commit history` | Documentação geral no `README.md` e `COMMITS.md` |
-| 10 | `HEAD` | `refactor(repo): move mobile app files directly to repository root` | Remoção da subpasta `mobile/`, deixando o app na raiz do repositório |
+| 10 | `c32404f` | `refactor(repo): move mobile app files directly to repository root` | Remoção da subpasta `mobile/`, deixando o app na raiz do repositório |
+| 11 | `HEAD` | `feat(ui,theme): implement organic dark/night mode with SQLite persistence (US-020)` | Paleta noturna Espresso/Couro, `useTheme`, `ThemeToggleButton` e migração v2 |
 
 ---
 
@@ -119,8 +120,23 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 
 ---
 
-### 8. `refactor(repo): move mobile app files directly to repository root`
+### 8. `c32404f` — `refactor(repo): move mobile app files directly to repository root`
 **O que foi entregue:**
 - Todos os arquivos de código (`src/`), configuração (`package.json`, `tsconfig.json`, `app.json`, `metro.config.js`, `vitest.config.mts`) e `assets/` foram movidos de `mobile/` diretamente para a raiz do repositório (`smart-wallet-app/`).
 - Remoção do diretório intermediário `mobile/` e do `mobile/README.md` duplicado do template Expo, mantendo o `README.md` principal na raiz.
+
+---
+
+### 9. `feat(ui,theme): implement organic dark/night mode with SQLite persistence (US-020)`
+**Arquivos principais:**
+- `src/ui/theme.ts`, `src/ui/text.tsx`, `src/ui/components.tsx`, `src/ui/shared-widgets.tsx`, `src/ui/donut-chart.tsx`, `src/ui/wallet-pocket.tsx`
+- `src/infrastructure/database/migrations.ts`, `src/store/wallet-store.ts`
+- `src/app/_layout.tsx`, `src/app/(tabs)/_layout.tsx`, `src/app/(tabs)/index.tsx`, `src/app/(tabs)/transactions.tsx`, `src/app/(tabs)/accounts.tsx`, `src/app/onboarding.tsx`, `src/app/transaction-form.tsx`, `app.json`
+
+**O que foi entregue:**
+- **Paleta Noturna Orgânica (`darkColors`):** Inspirada em *Nocturnal Espresso, Dark Leather & Warm Amber* (`#14110F` fundo café torrado, `#1F1A17` superfície mogno escuro, `#F2ECE4` texto pergaminho, `#D47B4A` terracota luminoso, `#4CA97C` sálvia luminosa e `#E0665A` coral terracota).
+- **Hook reativo `useTheme()` (`US-020`):** Suporte aos modos `'system'` (segue preferência do celular via `useColorScheme` e `userInterfaceStyle: "automatic"`), `'light'` e `'dark'`.
+- **Persistência SQLite (`US-020.3`):** Migração v2 criando a tabela `settings` para salvar a escolha de tema entre sessões.
+- **Controles de Interface (`US-020.1`):** Botão rápido `ThemeToggleButton` nos cabeçalhos das telas principais e seletor completo (`Sistema` / `Claro` / `Noturno`) na aba **Contas**.
+
 
