@@ -38,7 +38,7 @@ smart-wallet-app/
 - **Gerenciamento de Estado:** Zustand `5.0`
 - **Persistência Local:** `expo-sqlite` (offline-first, relacional)
 - **Visualização de Dados:** `react-native-svg` (Donut Chart interativo)
-- **Testes Unitários:** Vitest `5.0` (47 testes cobrindo regras de negócio `RN-01` a `RN-11` e autenticação)
+- **Testes Unitários:** Vitest `5.0` (51 testes cobrindo regras de negócio `RN-01` a `RN-11`, autenticação e internacionalização `pt`/`en`/`es`)
 
 ---
 
@@ -82,3 +82,4 @@ Veja a documentação detalhada de cada commit em [`docs/COMMITS.md`](./docs/COM
 | `e662879` | `feat(auth,ui)` | Tela de Login/Cadastro sempre em modo claro com Apple, Google e e-mail |
 | `2271a23` | `fix(navigation)` | Mantém `Stack` raiz montado durante init do SQLite (`ROUTE_NAMES_CHANGED`) |
 | `8dcc5d0` | `feat(settings,accounts)` | Aba dedicada de Configurações (`settings.tsx`) e aba Contas focada em bancos |
+| `f3538d6` | `feat(i18n)` | Suporte multi-idioma em Português (`pt`), Inglês (`en`) e Espanhol (`es`) |

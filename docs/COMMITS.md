@@ -27,6 +27,7 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 | 17 | `e662879` | `feat(auth,ui): create light-only Auth screen with Apple/Google login and email registration` | Tela `auth.tsx` forçada no modo claro (`ForcedThemeContext`) com login social e e-mail |
 | 18 | `2271a23` | `fix(navigation): keep root Stack mounted during SQLite init to handle ROUTE_NAMES_CHANGED` | Correção do warning `ROUTE_NAMES_CHANGED` mantendo `<Stack>` sempre montado |
 | 19 | `8dcc5d0` | `feat(settings,accounts): add dedicated Settings tab and focus Accounts tab on bank accounts` | Nova aba **Configurações** (`settings.tsx`) para conta/tema/privacidade e limpeza da aba **Contas** |
+| 20 | `f3538d6` | `feat(i18n): add multi-language support for Portuguese, English, and Spanish` | Internacionalização completa (`pt`, `en`, `es`) com persistência SQLite e tradução de categorias/datas |
 
 ---
 
@@ -94,6 +95,17 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 **O que foi entregue:**
 - Nova aba **Configurações (`settings.tsx`)** centralizando perfil do usuário (com badge do provedor E-mail/Google/Apple), aparência (**Sistema / Claro / Noturno**), privacidade de saldo (`R$ ****`), resumo de dados locais, **Sair da conta (Sign out)** e **Excluir minha conta permanentemente**.
 - Aba **Contas (`accounts.tsx`)** dedicada exclusivamente às contas bancárias, com suporte a editar, arquivar e excluir banco.
+
+---
+
+### 17. `f3538d6` — `feat(i18n): add multi-language support for Portuguese, English, and Spanish`
+**Arquivos principais:**
+- `src/shared/i18n.ts`, `src/shared/i18n.test.ts`, `src/shared/date.ts`, `src/store/wallet-store.ts`, `src/app/(tabs)/settings.tsx`, `src/app/auth.tsx`
+
+**O que foi entregue:**
+- Dicionários completos e tipados para **Português (`pt` 🇧🇷)**, **Inglês (`en` 🇺🇸)** e **Espanhol (`es` 🇪🇸)** cobrindo todas as telas, abas, formulários, modais e categorias padrão (`translateCategory`).
+- Formatação localizada de meses (`Outubro 2026` / `October 2026` / `Octubre 2026`) e datas relativas (`Hoje` / `Today` / `Hoy`, `Ontem` / `Yesterday` / `Ayer`).
+- Seletor de idioma na aba **Configurações** e no topo da tela de **Login/Cadastro**, com persistência automática no SQLite (`app_language`).
 
 ---
 
