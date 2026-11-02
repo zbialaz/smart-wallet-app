@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { useColorScheme } from 'react-native';
 import { create } from 'zustand';
 
@@ -106,17 +107,23 @@ export function usePrivacy() {
   };
 }
 
+/** Permite forçar um tema específico em uma árvore de tela (ex.: tela de Login sempre clara). */
+export const ForcedThemeContext = createContext<'light' | 'dark' | null>(null);
+
 /** Hook reativo de tema (US-020): retorna a paleta ativa (clara ou escura) e estado do modo noturno. */
 export function useTheme() {
+  const forced = useContext(ForcedThemeContext);
   const mode = useThemeStore((s) => s.mode);
   const systemScheme = useColorScheme();
-  const isDark = mode === 'dark' || (mode === 'system' && systemScheme === 'dark');
+  const effectiveMode = forced ?? mode;
+  const isDark =
+    effectiveMode === 'dark' || (effectiveMode === 'system' && systemScheme === 'dark');
   const activeColors = isDark ? darkColors : lightColors;
 
   return {
     colors: activeColors,
     isDark,
-    mode,
+    mode: effectiveMode,
     accentFor: (type: 'expense' | 'income') =>
       type === 'income' ? activeColors.income : activeColors.expense,
   };
