@@ -22,7 +22,7 @@ import { createTransactionRepository } from '@/domains/transactions/transaction-
 import { currentYearMonth, today, type YearMonth } from '@/shared/date';
 import { generateId, nowISO } from '@/shared/id';
 import { fail, ok, type FieldErrors, type Result } from '@/shared/result';
-import { useThemeStore, type ThemeMode } from '@/ui/theme';
+import { useThemeStore, type PrivacyMode, type ThemeMode } from '@/ui/theme';
 
 /**
  * WALLET STORE — a camada de APLICAÇÃO (casos de uso).
@@ -59,6 +59,8 @@ interface WalletState {
   setMonth(month: YearMonth): Promise<void>;
   setThemeMode(mode: ThemeMode): Promise<void>;
   toggleTheme(currentlyDark: boolean): Promise<void>;
+  toggleBalanceHidden(): Promise<void>;
+  setPrivacyMode(mode: PrivacyMode): Promise<void>;
 
   createAccount(draft: AccountDraft): Promise<Result<Account, FieldErrors<AccountField>>>;
   /** Cria (sem id) ou edita (com id) uma transação — US-001, US-002, US-003. */
@@ -109,6 +111,24 @@ export const useWallet = create<WalletState>()((set, get) => {
           useThemeStore.getState().setMode(savedTheme.value);
           set({ themeMode: savedTheme.value });
         }
+
+        const savedHidden = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'privacy_hidden'`,
+        );
+        if (savedHidden) {
+          useThemeStore.getState().setBalanceHidden(savedHidden.value === '1');
+        }
+
+        const savedPrivacyMode = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'privacy_mode'`,
+        );
+        if (
+          savedPrivacyMode &&
+          (savedPrivacyMode.value === 'asterisks' || savedPrivacyMode.value === 'wallet-flap')
+        ) {
+          useThemeStore.getState().setPrivacyMode(savedPrivacyMode.value);
+        }
+
         await get().refresh();
         set({ status: 'ready' });
       } catch (e) {
@@ -131,6 +151,29 @@ export const useWallet = create<WalletState>()((set, get) => {
     async toggleTheme(currentlyDark) {
       const next: ThemeMode = currentlyDark ? 'light' : 'dark';
       await get().setThemeMode(next);
+    },
+
+    async toggleBalanceHidden() {
+      const next = !useThemeStore.getState().isBalanceHidden;
+      useThemeStore.getState().setBalanceHidden(next);
+      const db = get().db;
+      if (db) {
+        await db.runAsync(
+          `INSERT OR REPLACE INTO settings (key, value) VALUES ('privacy_hidden', ?)`,
+          next ? '1' : '0',
+        );
+      }
+    },
+
+    async setPrivacyMode(mode) {
+      useThemeStore.getState().setPrivacyMode(mode);
+      const db = get().db;
+      if (db) {
+        await db.runAsync(
+          `INSERT OR REPLACE INTO settings (key, value) VALUES ('privacy_mode', ?)`,
+          mode,
+        );
+      }
     },
 
     /** Recarrega tudo do banco. Simples e suficiente para centenas de transações/mês. */

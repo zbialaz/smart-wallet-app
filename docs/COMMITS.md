@@ -18,7 +18,23 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 | 8 | `7087799` | `feat(app): implement Expo Router screens for onboarding, dashboard, accounts, and transactions` | Rotas, fluxos de tela e formulários do MVP |
 | 9 | `ea60c4b` | `docs: document project architecture, MVP status, and commit history` | Documentação geral no `README.md` e `COMMITS.md` |
 | 10 | `c32404f` | `refactor(repo): move mobile app files directly to repository root` | Remoção da subpasta `mobile/`, deixando o app na raiz do repositório |
-| 11 | `HEAD` | `feat(ui,theme): implement organic dark/night mode with SQLite persistence (US-020)` | Paleta noturna Espresso/Couro, `useTheme`, `ThemeToggleButton` e migração v2 |
+| 11 | `394ef7a` | `feat(ui,theme): implement organic dark/night mode with SQLite persistence (US-020)` | Paleta noturna Espresso/Couro, `useTheme`, `ThemeToggleButton` e migração v2 |
+| 12 | `HEAD` | `feat(ui,privacy): implement balance privacy with asterisks and realistic wallet flap physics` | Ocultação de saldo via asteriscos ou carteira fechando com física de molas |
+
+---
+
+### 10. `feat(ui,privacy): implement balance privacy with asterisks and realistic wallet flap physics`
+**Arquivos principais:**
+- `src/ui/wallet-pocket.tsx`, `src/ui/theme.ts`, `src/store/wallet-store.ts`, `src/app/(tabs)/accounts.tsx`
+
+**O que foi entregue:**
+- **Dois Modos de Privacidade:**
+  - **`asterisks`:** Ocultação textual rápida (`R$ ****`) no saldo consolidado, receitas, despesas e cartões de contas.
+  - **`wallet-flap`:** Animação física de carteira dobrável com molas (`Animated.spring`). Os cartões descem para dentro da câmara de couro, a aba superior dobra em perspectiva 3D (`perspective: 900`, `rotateX`) e se prende ao fecho de latão com impacto realista.
+- **Controles Interativos:**
+  - Barra superior de seleção de modo e botão no [WalletPocket](file:///Users/eduardobialas/Documents/SMART_WALLET/smart-wallet-app/src/ui/wallet-pocket.tsx).
+  - Toque no botão de latão para abrir/fechar a carteira.
+  - Configuração persistida no SQLite e refletida na tela de Contas.
 
 ---
 

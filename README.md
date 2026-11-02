@@ -92,4 +92,5 @@ Veja a documentação detalhada de cada commit em [`docs/COMMITS.md`](./docs/COM
 | `7087799` | `feat(app)` | Telas Expo Router: Onboarding, Dashboard, Contas e Extrato de Transações |
 | `ea60c4b` | `docs` | Documentação da arquitetura, status do MVP e histórico de commits |
 | `c32404f` | `refactor(repo)` | Move arquivos da subpasta `mobile/` diretamente para a raiz do repositório |
-| `HEAD` | `feat(ui,theme)` | Implementa Modo Noturno / Dark Mode orgânico (`US-020`) com persistência SQLite |
+| `394ef7a` | `feat(ui,theme)` | Implementa Modo Noturno / Dark Mode orgânico (`US-020`) com persistência SQLite |
+| `HEAD` | `feat(ui,privacy)` | Modo de ocultar saldo com asteriscos e animação física realista de fechar carteira |
