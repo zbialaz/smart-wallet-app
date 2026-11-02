@@ -16,6 +16,7 @@ smart-wallet-app/
 ├── src/
 │   ├── shared/                         # Primitivos: Money (centavos inteiros), ISODate, Result, DomainError
 │   ├── domains/                        # Bounded Contexts (regras puras, repositórios e testes)
+│   │   ├── auth/                       # Autenticação local/OAuth (Apple/Google), hash de senha e perfis
 │   │   ├── accounts/                   # Contas bancárias e cálculo de saldo (RN-05, RN-07, RN-11)
 │   │   ├── categories/                 # Categorias padrão e personalizadas (RN-09)
 │   │   ├── transactions/               # CRUD e validação de transações (RN-01..RN-06, RN-10)
@@ -23,7 +24,7 @@ smart-wallet-app/
 │   ├── infrastructure/database/        # Migrations SQLite (PRAGMA user_version) e seeds iniciais
 │   ├── store/                          # Zustand store + seletores reativos
 │   ├── ui/                             # Design System Editorial Orgânico (Warm Paper, Sand & Terracotta)
-│   └── app/                            # Rotas Expo Router ((tabs), onboarding, modais de formulário)
+│   └── app/                            # Rotas Expo Router (auth, onboarding, (tabs) com settings, modais)
 └── vitest.config.mts                   # Configuração de testes unitários de domínio
 ```
 
@@ -37,7 +38,7 @@ smart-wallet-app/
 - **Gerenciamento de Estado:** Zustand `5.0`
 - **Persistência Local:** `expo-sqlite` (offline-first, relacional)
 - **Visualização de Dados:** `react-native-svg` (Donut Chart interativo)
-- **Testes Unitários:** Vitest `5.0` (41 testes cobrindo regras de negócio `RN-01` a `RN-11`)
+- **Testes Unitários:** Vitest `5.0` (47 testes cobrindo regras de negócio `RN-01` a `RN-11` e autenticação)
 
 ---
 
@@ -73,4 +74,11 @@ Veja a documentação detalhada de cada commit em [`docs/COMMITS.md`](./docs/COM
 | `ea60c4b` | `docs` | Documentação da arquitetura, status do MVP e histórico de commits |
 | `c32404f` | `refactor(repo)` | Move arquivos da subpasta `mobile/` diretamente para a raiz do repositório |
 | `394ef7a` | `feat(ui,theme)` | Implementa Modo Noturno / Dark Mode orgânico (`US-020`) com persistência SQLite |
-| `HEAD` | `feat(ui,privacy)` | Modo de ocultar saldo com asteriscos e animação física realista de fechar carteira |
+| `ee7cc56` | `feat(ui,privacy)` | Modo de ocultar saldo com asteriscos e animação de carteira |
+| `f20cc33` | `refactor(ui,privacy)` | Simplifica ocultação de saldo mantendo apenas o modo de asteriscos (`R$ ****`) |
+| `72a516e` | `feat(auth)` | Domínio de autenticação de usuário, hash de senha e testes unitários |
+| `0da07a6` | `feat(infra,repos)` | Migração SQLite v3 (`users`) e isolamento de contas/transações por usuário |
+| `4c0675f` | `feat(store)` | Actions na store para cadastro, login, OAuth (Apple/Google), logout e exclusão |
+| `e662879` | `feat(auth,ui)` | Tela de Login/Cadastro sempre em modo claro com Apple, Google e e-mail |
+| `2271a23` | `fix(navigation)` | Mantém `Stack` raiz montado durante init do SQLite (`ROUTE_NAMES_CHANGED`) |
+| `8dcc5d0` | `feat(settings,accounts)` | Aba dedicada de Configurações (`settings.tsx`) e aba Contas focada em bancos |

@@ -19,22 +19,81 @@ Este documento registra e detalha o histórico de commits do repositório **Smar
 | 9 | `ea60c4b` | `docs: document project architecture, MVP status, and commit history` | Documentação geral no `README.md` e `COMMITS.md` |
 | 10 | `c32404f` | `refactor(repo): move mobile app files directly to repository root` | Remoção da subpasta `mobile/`, deixando o app na raiz do repositório |
 | 11 | `394ef7a` | `feat(ui,theme): implement organic dark/night mode with SQLite persistence (US-020)` | Paleta noturna Espresso/Couro, `useTheme`, `ThemeToggleButton` e migração v2 |
-| 12 | `HEAD` | `feat(ui,privacy): implement balance privacy with asterisks and realistic wallet flap physics` | Ocultação de saldo via asteriscos ou carteira fechando com física de molas |
+| 12 | `ee7cc56` | `feat(ui,privacy): implement balance privacy with asterisks and realistic wallet flap physics` | Ocultação de saldo inicial com persistência SQLite |
+| 13 | `f20cc33` | `refactor(ui,privacy): keep only asterisks mode for balance privacy` | Simplificação da privacidade de saldo exclusivamente para asteriscos (`R$ ****`) |
+| 14 | `72a516e` | `feat(auth): implement user authentication domain, password hashing, and unit tests` | Entidade `User`, validações de cadastro/login/OAuth, `hashPassword` e `UserRepository` |
+| 15 | `0da07a6` | `feat(infra,repos): add SQLite migration v3 for users and scope accounts/transactions by user` | Tabela `users`, coluna `user_id` em `accounts`/`transactions` e isolamento por conta |
+| 16 | `4c0675f` | `feat(store): add user registration, login, social OAuth, sign out, and account deletion actions` | Actions de autenticação, login social Apple/Google, logout e exclusão na store Zustand |
+| 17 | `e662879` | `feat(auth,ui): create light-only Auth screen with Apple/Google login and email registration` | Tela `auth.tsx` forçada no modo claro (`ForcedThemeContext`) com login social e e-mail |
+| 18 | `2271a23` | `fix(navigation): keep root Stack mounted during SQLite init to handle ROUTE_NAMES_CHANGED` | Correção do warning `ROUTE_NAMES_CHANGED` mantendo `<Stack>` sempre montado |
+| 19 | `8dcc5d0` | `feat(settings,accounts): add dedicated Settings tab and focus Accounts tab on bank accounts` | Nova aba **Configurações** (`settings.tsx`) para conta/tema/privacidade e limpeza da aba **Contas** |
 
 ---
 
-### 10. `feat(ui,privacy): implement balance privacy with asterisks and realistic wallet flap physics`
+### 10. `f20cc33` — `refactor(ui,privacy): keep only asterisks mode for balance privacy`
 **Arquivos principais:**
 - `src/ui/wallet-pocket.tsx`, `src/ui/theme.ts`, `src/store/wallet-store.ts`, `src/app/(tabs)/accounts.tsx`
 
 **O que foi entregue:**
-- **Dois Modos de Privacidade:**
-  - **`asterisks`:** Ocultação textual rápida (`R$ ****`) no saldo consolidado, receitas, despesas e cartões de contas.
-  - **`wallet-flap`:** Animação física de carteira dobrável com molas (`Animated.spring`). Os cartões descem para dentro da câmara de couro, a aba superior dobra em perspectiva 3D (`perspective: 900`, `rotateX`) e se prende ao fecho de latão com impacto realista.
-- **Controles Interativos:**
-  - Barra superior de seleção de modo e botão no [WalletPocket](file:///Users/eduardobialas/Documents/SMART_WALLET/smart-wallet-app/src/ui/wallet-pocket.tsx).
-  - Toque no botão de latão para abrir/fechar a carteira.
-  - Configuração persistida no SQLite e refletida na tela de Contas.
+- Ocultação rápida e direta de valores monetários com `R$ ****` no saldo consolidado, receitas, despesas e cartões de contas bancárias, com persistência no SQLite (`balance_hidden`).
+
+---
+
+### 11. `72a516e` — `feat(auth): implement user authentication domain, password hashing, and unit tests`
+**Arquivos:**
+- `src/domains/auth/user.ts`, `src/domains/auth/user.test.ts`, `src/domains/auth/user-repository.ts`
+
+**O que foi entregue:**
+- Validação de nome, normalização de e-mail, política de senha mínima (`>= 6` caracteres) e hash determinístico (`hashPassword`) com suporte a provedores `'email'`, `'google'` e `'apple'`.
+- Repositório SQLite (`UserRepository`) para criação, busca por ID/e-mail e exclusão em cascata de usuários.
+
+---
+
+### 12. `0da07a6` — `feat(infra,repos): add SQLite migration v3 for users and scope accounts/transactions by user`
+**Arquivos:**
+- `src/infrastructure/database/migrations.ts`, `src/domains/accounts/account-repository.ts`, `src/domains/transactions/transaction-repository.ts`
+
+**O que foi entregue:**
+- Migração SQLite **v3** criando a tabela `users` e adicionando `user_id` em `accounts` e `transactions`.
+- Isolamento completo dos dados financeiros (`listAll(userId)`, `deleteAccount(id)`) por usuário autenticado.
+
+---
+
+### 13. `4c0675f` — `feat(store): add user registration, login, social OAuth, sign out, and account deletion actions`
+**Arquivos:**
+- `src/store/wallet-store.ts`
+
+**O que foi entregue:**
+- Actions `registerUser`, `loginUser`, `loginWithSocial`, `logoutUser`, `deleteCurrentUser` e `deleteBankAccount` integradas ao estado global Zustand e persistência de sessão (`current_user_id`).
+
+---
+
+### 14. `e662879` — `feat(auth,ui): create light-only Auth screen with Apple/Google login and email registration`
+**Arquivos:**
+- `src/ui/theme.ts`, `src/app/auth.tsx`, `src/app/onboarding.tsx`
+
+**O que foi entregue:**
+- `ForcedThemeContext` em `theme.ts` garantindo que a tela de autenticação (`src/app/auth.tsx`) permaneça sempre no modo claro (*Warm Paper*), independentemente do tema global.
+- Botões de **Continuar com Apple**, **Continuar com Google**, alternância entre **Entrar** e **Criar Conta** e seletor de contas salvas no dispositivo.
+
+---
+
+### 15. `2271a23` — `fix(navigation): keep root Stack mounted during SQLite init to handle ROUTE_NAMES_CHANGED`
+**Arquivos:**
+- `src/app/_layout.tsx`
+
+**O que foi entregue:**
+- Mantém o `<Stack>` do Expo Router sempre montado durante a inicialização do banco SQLite (exibindo um overlay de carregamento) e gerencia o redirecionamento de autenticação via `useEffect`, eliminando o warning `The action 'ROUTE_NAMES_CHANGED' was not handled by any navigator`.
+
+---
+
+### 16. `8dcc5d0` — `feat(settings,accounts): add dedicated Settings tab and focus Accounts tab on bank accounts`
+**Arquivos:**
+- `src/app/(tabs)/settings.tsx`, `src/app/(tabs)/_layout.tsx`, `src/app/(tabs)/accounts.tsx`, `src/app/(tabs)/index.tsx`, `src/app/(tabs)/transactions.tsx`
+
+**O que foi entregue:**
+- Nova aba **Configurações (`settings.tsx`)** centralizando perfil do usuário (com badge do provedor E-mail/Google/Apple), aparência (**Sistema / Claro / Noturno**), privacidade de saldo (`R$ ****`), resumo de dados locais, **Sair da conta (Sign out)** e **Excluir minha conta permanentemente**.
+- Aba **Contas (`accounts.tsx`)** dedicada exclusivamente às contas bancárias, com suporte a editar, arquivar e excluir banco.
 
 ---
 
