@@ -5,9 +5,10 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'rea
 import { categoriesForType } from '@/domains/categories/category';
 import { DESCRIPTION_MAX_LENGTH, type TransactionField } from '@/domains/transactions/transaction';
 import { addDays, formatDateBR, parseDateBR, today, type ISODate } from '@/shared/date';
+import { useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 import type { FieldErrors } from '@/shared/result';
-import { TRANSACTION_TYPE_LABEL, type TransactionType } from '@/shared/transaction-type';
+import type { TransactionType } from '@/shared/transaction-type';
 import { useWallet } from '@/store/wallet-store';
 import {
   AmountInput,
@@ -29,6 +30,7 @@ import { radius, spacing, useTheme } from '@/ui/theme';
 export default function TransactionFormScreen() {
   const router = useRouter();
   const { colors, accentFor } = useTheme();
+  const { t, tCategory } = useI18n();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
 
@@ -121,53 +123,53 @@ export default function TransactionFormScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="title">{isEditing ? 'Editar transação' : 'Nova transação'}</Text>
+            <Text variant="title">{isEditing ? t.transactions.editTitle : t.transactions.newTitle}</Text>
             <Pressable onPress={() => router.back()} hitSlop={12} testID="close-form">
-              <Text color="textMuted">Fechar</Text>
+              <Text color="textMuted">{t.common.close}</Text>
             </Pressable>
           </View>
 
           {/* Gasto / Receita — o destaque muda de cor (US-002.1) */}
           <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md, padding: 4 }}>
-            {(['expense', 'income'] as const).map((t) => (
+            {(['expense', 'income'] as const).map((txType) => (
               <Pressable
-                key={t}
-                testID={`type-${t}`}
-                onPress={() => changeType(t)}
+                key={txType}
+                testID={`type-${txType}`}
+                onPress={() => changeType(txType)}
                 style={{
                   flex: 1,
                   alignItems: 'center',
                   paddingVertical: spacing.md,
                   borderRadius: radius.sm,
-                  backgroundColor: type === t ? accentFor(t) + '2B' : 'transparent',
+                  backgroundColor: type === txType ? accentFor(txType) + '2B' : 'transparent',
                 }}>
-                <Text variant="bodyStrong" style={{ color: type === t ? accentFor(t) : colors.textMuted }}>
-                  {TRANSACTION_TYPE_LABEL[t]}
+                <Text variant="bodyStrong" style={{ color: type === txType ? accentFor(txType) : colors.textMuted }}>
+                  {txType === 'expense' ? t.transactions.expense : t.transactions.income}
                 </Text>
               </Pressable>
             ))}
           </View>
 
-          <Field label="Valor" error={errors.amount}>
+          <Field label={t.transactions.amountLabel} error={errors.amount}>
             <AmountInput value={amount} onChange={setAmount} accent={accent} autoFocus={!isEditing} invalid={!!errors.amount} />
           </Field>
 
-          <Field label="Descrição (opcional)" error={errors.description}>
+          <Field label={t.transactions.descriptionLabel} error={errors.description}>
             <TextField
               testID="description-input"
               value={description}
               onChangeText={setDescription}
-              placeholder="Ex.: iFood, mercado, salário…"
+              placeholder={t.transactions.descriptionPlaceholder}
               maxLength={DESCRIPTION_MAX_LENGTH}
             />
           </Field>
 
-          <Field label="Categoria" error={errors.categoryId}>
+          <Field label={t.transactions.categoryLabel} error={errors.categoryId}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               {categoryChips.map((c) => (
                 <Chip
                   key={c.id}
-                  label={c.name}
+                  label={tCategory(c.id, c.name)}
                   icon={c.icon as never}
                   color={c.color}
                   selected={categoryId === c.id}
@@ -177,7 +179,7 @@ export default function TransactionFormScreen() {
             </View>
           </Field>
 
-          <Field label="Conta" error={errors.accountId}>
+          <Field label={t.transactions.accountLabel} error={errors.accountId}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               {accounts.map((a) => (
                 <Chip key={a.id} label={a.name} icon="business" color={a.color} selected={accountId === a.id} onPress={() => setAccountId(a.id)} />
@@ -185,10 +187,10 @@ export default function TransactionFormScreen() {
             </View>
           </Field>
 
-          <Field label="Data" error={errors.date ?? (parsedDate ? undefined : 'Use o formato DD/MM/AAAA')}>
+          <Field label={t.transactions.dateLabel} error={errors.date ?? (parsedDate ? undefined : t.transactions.dateFormatError)}>
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <Chip label="Hoje" selected={parsedDate === today()} onPress={() => setDateText(formatDateBR(today()))} />
-              <Chip label="Ontem" selected={parsedDate === addDays(today(), -1)} onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} />
+              <Chip label={t.common.today} selected={parsedDate === today()} onPress={() => setDateText(formatDateBR(today()))} />
+              <Chip label={t.common.yesterday} selected={parsedDate === addDays(today(), -1)} onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} />
             </View>
             <TextField
               testID="date-input"
@@ -201,7 +203,7 @@ export default function TransactionFormScreen() {
           </Field>
 
           <Button
-            label={isEditing ? 'Salvar alterações' : 'Salvar'}
+            label={isEditing ? t.common.saveChanges : t.common.save}
             onPress={onSave}
             loading={saving}
             style={{ backgroundColor: accent }}
@@ -209,16 +211,16 @@ export default function TransactionFormScreen() {
           />
 
           {isEditing && (
-            <Button label="Excluir transação" variant="danger" icon="trash" onPress={() => setConfirmDelete(true)} testID="delete-transaction" />
+            <Button label={t.transactions.deleteTransactionBtn} variant="danger" icon="trash" onPress={() => setConfirmDelete(true)} testID="delete-transaction" />
           )}
         </ScrollView>
       </KeyboardAvoidingView>
 
       <ConfirmDialog
         visible={confirmDelete}
-        title="Excluir transação?"
-        message="Essa ação não pode ser desfeita e o saldo da conta será ajustado."
-        confirmLabel="Excluir"
+        title={t.transactions.deleteConfirmTitle}
+        message={t.transactions.deleteConfirmMessage}
+        confirmLabel={t.common.delete}
         onConfirm={onDelete}
         onCancel={() => setConfirmDelete(false)}
       />

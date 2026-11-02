@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatRelativeDate } from '@/shared/date';
 import { addMonths, currentYearMonth, formatYearMonth, type YearMonth } from '@/shared/date';
+import { useI18n } from '@/shared/i18n';
 import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
 import { useAccountMap, useCategoryMap } from '@/store/selectors';
 
@@ -23,6 +24,7 @@ export function MonthSwitcher({
   onChange: (m: YearMonth) => void;
 }) {
   const { colors } = useTheme();
+  const { language } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isCurrent = month >= currentYearMonth();
 
@@ -39,7 +41,7 @@ export function MonthSwitcher({
       <View style={styles.monthLabelArea}>
         <Ionicons name="calendar-outline" size={14} color={colors.textMuted} style={{ marginRight: 6 }} />
         <Text variant="bodyStrong" style={styles.monthText}>
-          {formatYearMonth(month)}
+          {formatYearMonth(month, language)}
         </Text>
       </View>
 
@@ -71,6 +73,7 @@ export function TransactionRow({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
+  const { language, t, tCategory } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const categories = useCategoryMap();
   const accounts = useAccountMap();
@@ -78,6 +81,7 @@ export function TransactionRow({
   const account = accounts.get(transaction.accountId);
   const signed = signedAmount(transaction);
   const isIncome = transaction.type === 'income';
+  const categoryLabel = category ? tCategory(category.id, category.name) : undefined;
 
   return (
     <Pressable
@@ -95,10 +99,10 @@ export function TransactionRow({
 
       <View style={styles.rowDetails}>
         <Text variant="bodyStrong" numberOfLines={1} style={{ color: colors.text }}>
-          {transaction.description ?? category?.name ?? 'Transação'}
+          {transaction.description ?? categoryLabel ?? t.transactions.fallbackTransaction}
         </Text>
         <Text variant="caption" color="textMuted" numberOfLines={1}>
-          {category?.name} • {account?.name ?? 'Conta'}
+          {categoryLabel} • {account?.name ?? t.transactions.fallbackAccount}
         </Text>
       </View>
 
@@ -113,7 +117,7 @@ export function TransactionRow({
           {signed.abs().format()}
         </Text>
         <Text variant="caption" color="textFaint" style={{ fontSize: 11, textAlign: 'right' }}>
-          {formatRelativeDate(transaction.date)}
+          {formatRelativeDate(transaction.date, undefined, language)}
         </Text>
       </View>
     </Pressable>

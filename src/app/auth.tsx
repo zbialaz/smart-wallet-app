@@ -19,6 +19,7 @@ import {
   type AuthField,
   type SocialProvider,
 } from '@/domains/auth/user';
+import { LANGUAGE_OPTIONS, useI18n } from '@/shared/i18n';
 import type { FieldErrors } from '@/shared/result';
 import { useWallet } from '@/store/wallet-store';
 import {
@@ -43,6 +44,8 @@ type AuthMode = 'login' | 'register';
 export default function AuthScreen() {
   const router = useRouter();
   const colors = lightColors;
+  const { language, t } = useI18n();
+  const setLanguage = useWallet((s) => s.setLanguage);
   const loginUser = useWallet((s) => s.loginUser);
   const registerUser = useWallet((s) => s.registerUser);
   const loginWithSocial = useWallet((s) => s.loginWithSocial);
@@ -190,17 +193,40 @@ export default function AuthScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}>
-            {/* Cabeçalho com Marca (Sempre no modo claro) */}
+            {/* Cabeçalho com Marca (Sempre no modo claro) + Seletor de Idioma */}
             <FadeIn style={styles.header}>
               <View style={styles.topRow}>
                 <IconBadge icon="wallet" color={colors.primary} size={56} />
+                <View style={[styles.langPillGroup, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
+                  {LANGUAGE_OPTIONS.map((opt) => {
+                    const active = language === opt.code;
+                    return (
+                      <Pressable
+                        key={opt.code}
+                        testID={`auth-lang-${opt.code}`}
+                        onPress={() => setLanguage(opt.code)}
+                        style={[
+                          styles.langPillItem,
+                          active && { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1 },
+                        ]}>
+                        <Text
+                          variant="caption"
+                          style={{
+                            fontWeight: active ? '800' : '600',
+                            color: active ? colors.primary : colors.textMuted,
+                            fontSize: 11,
+                          }}>
+                          {opt.flag} {opt.code.toUpperCase()}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
               <View style={{ gap: 4 }}>
                 <Text variant="display">Smart Wallet</Text>
                 <Text color="textMuted">
-                  {authMode === 'login'
-                    ? 'Entre na sua conta para acessar suas finanças.'
-                    : 'Crie sua conta pessoal para organizar seus bancos e gastos.'}
+                  {authMode === 'login' ? t.auth.loginSubtitle : t.auth.registerSubtitle}
                 </Text>
               </View>
             </FadeIn>
@@ -221,7 +247,7 @@ export default function AuthScreen() {
                 ]}>
                 <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
                 <Text variant="bodyStrong" style={{ color: '#FFFFFF' }}>
-                  Continuar com a Apple
+                  {t.auth.continueWithApple}
                 </Text>
               </Pressable>
 
@@ -239,7 +265,7 @@ export default function AuthScreen() {
               ]}>
               <Ionicons name="logo-google" size={18} color="#DB4437" />
               <Text variant="bodyStrong" style={{ color: colors.text }}>
-                Continuar com o Google
+                {t.auth.continueWithGoogle}
               </Text>
             </Pressable>
           </FadeIn>
@@ -248,7 +274,7 @@ export default function AuthScreen() {
           <FadeIn delay={70} style={styles.dividerRow}>
             <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
             <Text variant="label" color="textFaint" style={{ fontSize: 10 }}>
-              OU COM SEU E-MAIL
+              {t.auth.orWithEmail}
             </Text>
             <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </FadeIn>
@@ -276,7 +302,7 @@ export default function AuthScreen() {
                   style={{
                     color: authMode === 'login' ? colors.primary : colors.textMuted,
                   }}>
-                  Entrar
+                  {t.auth.loginTab}
                 </Text>
               </Pressable>
 
@@ -296,7 +322,7 @@ export default function AuthScreen() {
                   style={{
                     color: authMode === 'register' ? colors.primary : colors.textMuted,
                   }}>
-                  Criar conta
+                  {t.auth.registerTab}
                 </Text>
               </Pressable>
             </View>
@@ -306,7 +332,7 @@ export default function AuthScreen() {
           <FadeIn delay={120}>
             <Card style={{ gap: spacing.lg }}>
               {authMode === 'register' && (
-                <Field label="Seu nome" error={errors.name}>
+                <Field label={t.auth.yourNameLabel} error={errors.name}>
                   <TextField
                     testID="auth-name-input"
                     value={name}
@@ -314,7 +340,7 @@ export default function AuthScreen() {
                       setName(v);
                       if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
                     }}
-                    placeholder="Ex.: Eduardo Bialas"
+                    placeholder={t.auth.yourNamePlaceholder}
                     autoCapitalize="words"
                     maxLength={USER_NAME_MAX_LENGTH}
                     invalid={!!errors.name}
@@ -322,7 +348,7 @@ export default function AuthScreen() {
                 </Field>
               )}
 
-              <Field label="E-mail" error={errors.email}>
+              <Field label={t.auth.emailLabel} error={errors.email}>
                 <TextField
                   testID="auth-email-input"
                   value={email}
@@ -330,7 +356,7 @@ export default function AuthScreen() {
                     setEmail(v);
                     if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
                   }}
-                  placeholder="seu@email.com"
+                  placeholder={t.auth.emailPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -338,7 +364,7 @@ export default function AuthScreen() {
                 />
               </Field>
 
-              <Field label="Senha" error={errors.password}>
+              <Field label={t.auth.passwordLabel} error={errors.password}>
                 <View style={{ justifyContent: 'center' }}>
                   <TextField
                     testID="auth-password-input"
@@ -347,7 +373,11 @@ export default function AuthScreen() {
                       setPassword(v);
                       if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
                     }}
-                    placeholder={authMode === 'register' ? 'Mínimo de 6 caracteres' : 'Sua senha'}
+                    placeholder={
+                      authMode === 'register'
+                        ? t.auth.passwordRegisterPlaceholder
+                        : t.auth.passwordLoginPlaceholder
+                    }
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     invalid={!!errors.password}
@@ -367,7 +397,7 @@ export default function AuthScreen() {
               </Field>
 
               {authMode === 'register' && (
-                <Field label="Confirmar senha" error={errors.confirmPassword}>
+                <Field label={t.auth.confirmPasswordLabel} error={errors.confirmPassword}>
                   <TextField
                     testID="auth-confirm-password-input"
                     value={confirmPassword}
@@ -377,7 +407,7 @@ export default function AuthScreen() {
                         setErrors((e) => ({ ...e, confirmPassword: undefined }));
                       }
                     }}
-                    placeholder="Repita a senha"
+                    placeholder={t.auth.confirmPasswordPlaceholder}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     invalid={!!errors.confirmPassword}
@@ -387,7 +417,7 @@ export default function AuthScreen() {
 
               <Button
                 testID="auth-submit-btn"
-                label={authMode === 'login' ? 'Entrar na carteira' : 'Criar minha conta'}
+                label={authMode === 'login' ? t.auth.submitLogin : t.auth.submitRegister}
                 icon={authMode === 'login' ? 'log-in-outline' : 'person-add-outline'}
                 onPress={onSubmit}
                 loading={submitting}
@@ -401,9 +431,9 @@ export default function AuthScreen() {
               onPress={() => switchMode(authMode === 'login' ? 'register' : 'login')}
               hitSlop={10}>
               <Text color="textMuted">
-                {authMode === 'login' ? 'Ainda não tem uma conta? ' : 'Já possui uma conta? '}
+                {authMode === 'login' ? t.auth.noAccountPrompt : t.auth.hasAccountPrompt}
                 <Text variant="bodyStrong" color="primary">
-                  {authMode === 'login' ? 'Cadastre-se' : 'Fazer login'}
+                  {authMode === 'login' ? t.auth.noAccountAction : t.auth.hasAccountAction}
                 </Text>
               </Text>
             </Pressable>
@@ -447,29 +477,33 @@ export default function AuthScreen() {
                 <View>
                   <Text variant="heading">
                     {socialModalProvider === 'apple'
-                      ? 'Iniciar sessão com a Apple'
-                      : 'Fazer login com o Google'}
+                      ? t.auth.appleSheetTitle
+                      : t.auth.googleSheetTitle}
                   </Text>
                   <Text variant="caption" color="textMuted">
                     {socialModalProvider === 'apple'
-                      ? 'Use seu ID Apple para entrar no Smart Wallet'
-                      : 'Escolha sua Conta do Google para continuar'}
+                      ? t.auth.appleSheetSubtitle
+                      : t.auth.googleSheetSubtitle}
                   </Text>
                 </View>
               </View>
             </View>
 
-            <Field label="Nome da conta">
+            <Field label={t.auth.accountNameField}>
               <TextField
                 testID="social-name-input"
                 value={socialName}
                 onChangeText={setSocialName}
-                placeholder="Seu nome"
+                placeholder={t.auth.yourNameLabel}
               />
             </Field>
 
             <Field
-              label={socialModalProvider === 'apple' ? 'ID Apple (E-mail)' : 'E-mail do Google'}
+              label={
+                socialModalProvider === 'apple'
+                  ? t.auth.appleEmailField
+                  : t.auth.googleEmailField
+              }
               error={socialError ?? undefined}>
               <TextField
                 testID="social-email-input"
@@ -487,14 +521,14 @@ export default function AuthScreen() {
 
             <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.xs }}>
               <Button
-                label="Cancelar"
+                label={t.common.cancel}
                 variant="secondary"
                 onPress={() => setSocialModalProvider(null)}
                 style={{ flex: 1 }}
               />
               <Button
                 testID="social-confirm-btn"
-                label="Continuar"
+                label={t.common.continue}
                 icon={socialModalProvider === 'apple' ? 'scan-outline' : 'checkmark-circle-outline'}
                 loading={socialLoading}
                 onPress={handleConfirmSocialSheet}
@@ -523,6 +557,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  langPillGroup: {
+    flexDirection: 'row',
+    borderRadius: radius.pill,
+    padding: 3,
+    borderWidth: 1,
+    gap: 2,
+  },
+  langPillItem: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
   },
   socialButton: {
     minHeight: 50,

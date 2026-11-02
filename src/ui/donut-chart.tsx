@@ -4,6 +4,7 @@ import Svg, { Circle, G } from 'react-native-svg';
 
 import type { CategorySlice } from '@/domains/dashboard/summary';
 import { formatShare } from '@/domains/dashboard/summary';
+import { useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 
 import { Text } from './text';
@@ -20,6 +21,7 @@ const C = 2 * Math.PI * R;
  */
 export function DonutChart({ slices, total }: { slices: CategorySlice[]; total: Money }) {
   const { colors } = useTheme();
+  const { t, tCategory } = useI18n();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = slices.find((s) => s.categoryId === selectedId) ?? null;
 
@@ -56,7 +58,7 @@ export function DonutChart({ slices, total }: { slices: CategorySlice[]; total: 
         </Svg>
         <View style={{ position: 'absolute', alignItems: 'center', maxWidth: 120 }} pointerEvents="none">
           <Text variant="label" color="textMuted" numberOfLines={1}>
-            {selected ? selected.name : 'Total gasto'}
+            {selected ? tCategory(selected.categoryId, selected.name) : t.dashboard.totalSpent}
           </Text>
           <Text variant="heading" adjustsFontSizeToFit numberOfLines={1}>
             {(selected ? selected.total : total).format()}
@@ -85,7 +87,7 @@ export function DonutChart({ slices, total }: { slices: CategorySlice[]; total: 
             }}>
             <View style={{ width: 12, height: 12, borderRadius: 4, backgroundColor: slice.color }} />
             <Text style={{ flex: 1 }} numberOfLines={1}>
-              {slice.name}
+              {tCategory(slice.categoryId, slice.name)}
             </Text>
             <Text variant="caption" color="textMuted">
               {formatShare(slice.share)}

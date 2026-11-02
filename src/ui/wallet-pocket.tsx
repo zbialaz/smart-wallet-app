@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import type { AccountWithBalance } from '@/domains/accounts/account';
+import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
 import { Text } from '@/ui/text';
@@ -60,6 +61,7 @@ export function WalletPocket({
   const router = useRouter();
   const { isDark } = useTheme();
   const { isBalanceHidden } = usePrivacy();
+  const { t } = useI18n();
   const toggleBalanceHidden = useWallet((s) => s.toggleBalanceHidden);
   const cardWidth = getCardWidth(accounts.length);
 
@@ -134,7 +136,7 @@ export function WalletPocket({
 
                       {/* Saldo da Conta: Visível ou Mascarado com Asteriscos */}
                       <View style={styles.cardBalanceBox}>
-                        <Text style={styles.cardBalanceLabel}>SALDO</Text>
+                        <Text style={styles.cardBalanceLabel}>{t.wallet.cardBalance}</Text>
                         <Text
                           style={styles.cardBalanceValue}
                           numberOfLines={1}
@@ -157,7 +159,7 @@ export function WalletPocket({
                     { transform: [{ scale: pressed ? 0.96 : 1 }] },
                   ]}>
                   <Ionicons name="add-circle-outline" size={16} color="#E4D5C7" />
-                  <Text style={styles.addCardText}>Nova conta</Text>
+                  <Text style={styles.addCardText}>{t.wallet.newAccountSlot}</Text>
                 </Pressable>
               </View>
             </ScrollView>
@@ -189,7 +191,7 @@ export function WalletPocket({
                   onPress={toggleBalanceHidden}
                   hitSlop={12}
                   accessibilityRole="button"
-                  accessibilityLabel={isBalanceHidden ? 'Mostrar valores' : 'Ocultar valores'}
+                  accessibilityLabel={isBalanceHidden ? t.wallet.showValues : t.wallet.hideValues}
                   style={({ pressed }) => [
                     styles.privacyHeaderBtn,
                     pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
@@ -201,7 +203,7 @@ export function WalletPocket({
                       color="#EFE3D5"
                     />
                     <Text style={styles.eyePillText}>
-                      {isBalanceHidden ? 'Mostrar' : 'Ocultar'}
+                      {isBalanceHidden ? t.wallet.showValues : t.wallet.hideValues}
                     </Text>
                   </View>
 
@@ -218,7 +220,7 @@ export function WalletPocket({
 
               {/* Saldo Consolidado */}
               <Pressable onPress={toggleBalanceHidden} style={styles.balanceArea}>
-                <Text style={styles.balancePrefix}>SALDO CONSOLIDADO</Text>
+                <Text style={styles.balancePrefix}>{t.wallet.consolidatedBalance}</Text>
                 <Text
                   variant="display"
                   adjustsFontSizeToFit
@@ -234,7 +236,7 @@ export function WalletPocket({
               {/* Entradas e Saídas do Mês */}
               <View style={styles.walletFooter}>
                 <View style={styles.footerCol}>
-                  <Text style={styles.footerLabel}>ENTRADAS DO MÊS</Text>
+                  <Text style={styles.footerLabel}>{t.wallet.monthlyIncome}</Text>
                   <Text style={styles.footerValueIncome}>
                     {isBalanceHidden ? `+${MASKED_BALANCE}` : `+${income.format()}`}
                   </Text>
@@ -243,7 +245,7 @@ export function WalletPocket({
                 <View style={styles.footerDivider} />
 
                 <View style={styles.footerCol}>
-                  <Text style={styles.footerLabel}>SAÍDAS DO MÊS</Text>
+                  <Text style={styles.footerLabel}>{t.wallet.monthlyExpense}</Text>
                   <Text style={styles.footerValueExpense}>
                     {isBalanceHidden ? `-${MASKED_BALANCE}` : `-${expense.format()}`}
                   </Text>

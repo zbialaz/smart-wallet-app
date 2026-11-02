@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { AccountForm } from '@/domains/accounts/account-form';
+import { useI18n } from '@/shared/i18n';
 import { useWallet } from '@/store/wallet-store';
 import { FadeIn, IconBadge, Screen, ThemeToggleButton } from '@/ui/components';
 import { Text } from '@/ui/text';
@@ -11,10 +12,11 @@ import { spacing, useTheme } from '@/ui/theme';
 export default function OnboardingScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const currentUser = useWallet((s) => s.currentUser);
   const signOut = useWallet((s) => s.signOut);
 
-  const firstName = currentUser?.name.split(' ')[0] ?? 'você';
+  const firstName = currentUser?.name.split(' ')[0] ?? t.onboarding.defaultUser;
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -32,17 +34,15 @@ export default function OnboardingScreen() {
                 hitSlop={10}
                 style={{ paddingHorizontal: spacing.sm, paddingVertical: 6 }}>
                 <Text variant="caption" color="textMuted">
-                  Sair
+                  {t.onboarding.signOut}
                 </Text>
               </Pressable>
             </View>
           </View>
-          <Text variant="display">Olá, {firstName}!</Text>
-          <Text color="textMuted">
-            Vamos começar cadastrando sua primeira conta bancária. Você pode adicionar outras depois.
-          </Text>
+          <Text variant="display">{t.onboarding.greeting(firstName)}</Text>
+          <Text color="textMuted">{t.onboarding.subtitle}</Text>
         </FadeIn>
-        <AccountForm submitLabel="Começar" onDone={() => router.replace('/')} />
+        <AccountForm submitLabel={t.onboarding.startButton} onDone={() => router.replace('/')} />
       </View>
     </Screen>
   );

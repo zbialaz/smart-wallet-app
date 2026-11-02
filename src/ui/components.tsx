@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
 
@@ -46,13 +47,14 @@ export function Screen({
 /** Botão de alternância de Tema Claro / Escuro (US-020). */
 export function ThemeToggleButton({ testID = 'theme-toggle' }: { testID?: string }) {
   const { colors, isDark } = useTheme();
+  const { t } = useI18n();
   const toggleTheme = useWallet((s) => s.toggleTheme);
 
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={isDark ? 'Ativar modo claro' : 'Ativar modo noturno'}
+      accessibilityLabel={isDark ? t.common.light : t.common.dark}
       onPress={() => toggleTheme(isDark)}
       hitSlop={10}
       style={({ pressed }) => ({
@@ -73,7 +75,7 @@ export function ThemeToggleButton({ testID = 'theme-toggle' }: { testID?: string
         color={colors.primary}
       />
       <Text variant="caption" style={{ color: colors.text, fontWeight: '700', fontSize: 12 }}>
-        {isDark ? 'Claro' : 'Noturno'}
+        {isDark ? t.common.light : t.common.dark}
       </Text>
     </Pressable>
   );
@@ -343,6 +345,7 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -354,7 +357,7 @@ export function ConfirmDialog({
             {message}
           </Text>
           <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm }}>
-            <Button label="Cancelar" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
+            <Button label={t.common.cancel} variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
             <Button
               label={confirmLabel}
               variant="danger"

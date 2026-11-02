@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { USER_NAME_MAX_LENGTH } from '@/domains/auth/user';
+import { LANGUAGE_OPTIONS, useI18n } from '@/shared/i18n';
 import { useConsolidatedBalance } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import {
@@ -21,51 +22,53 @@ import { Text } from '@/ui/text';
 import { radius, spacing, usePrivacy, useTheme, type ThemeMode } from '@/ui/theme';
 import { MASKED_BALANCE } from '@/ui/wallet-pocket';
 
-const THEME_OPTIONS: {
-  mode: ThemeMode;
-  label: string;
-  description: string;
-  icon: 'phone-portrait-outline' | 'sunny-outline' | 'moon-outline';
-}[] = [
-  {
-    mode: 'system',
-    label: 'Sistema',
-    description: 'Segue o celular',
-    icon: 'phone-portrait-outline',
-  },
-  {
-    mode: 'light',
-    label: 'Claro',
-    description: 'Linho & Papel',
-    icon: 'sunny-outline',
-  },
-  {
-    mode: 'dark',
-    label: 'Noturno',
-    description: 'Café & Couro',
-    icon: 'moon-outline',
-  },
-];
-
 /**
  * Aba de Configurações:
- * Centraliza Perfil do Usuário, Aparência (Modo Claro / Noturno / Sistema),
+ * Centraliza Perfil do Usuário, Idioma (PT / EN / ES), Aparência (Modo Claro / Noturno / Sistema),
  * Privacidade (Ocultar Saldos), Atalhos de Contas, Sign Out e Exclusão de Conta.
  */
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, mode, isDark } = useTheme();
   const { isBalanceHidden } = usePrivacy();
+  const { language, t } = useI18n();
 
   const currentUser = useWallet((s) => s.currentUser);
   const accounts = useWallet((s) => s.accounts);
   const categories = useWallet((s) => s.categories);
   const setThemeMode = useWallet((s) => s.setThemeMode);
+  const setLanguage = useWallet((s) => s.setLanguage);
   const toggleBalanceHidden = useWallet((s) => s.toggleBalanceHidden);
   const updateUserName = useWallet((s) => s.updateUserName);
   const signOut = useWallet((s) => s.signOut);
   const deleteUserAccount = useWallet((s) => s.deleteUserAccount);
   const consolidated = useConsolidatedBalance();
+
+  const themeOptions: {
+    mode: ThemeMode;
+    label: string;
+    description: string;
+    icon: 'phone-portrait-outline' | 'sunny-outline' | 'moon-outline';
+  }[] = [
+    {
+      mode: 'system',
+      label: t.common.system,
+      description: t.settings.themeSystemDesc,
+      icon: 'phone-portrait-outline',
+    },
+    {
+      mode: 'light',
+      label: t.common.light,
+      description: t.settings.themeLightDesc,
+      icon: 'sunny-outline',
+    },
+    {
+      mode: 'dark',
+      label: t.common.dark,
+      description: t.settings.themeDarkDesc,
+      icon: 'moon-outline',
+    },
+  ];
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [nameInput, setNameInput] = useState(currentUser?.name ?? '');
@@ -109,10 +112,8 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
         <FadeIn>
-          <Text variant="title">Configurações</Text>
-          <Text color="textMuted">
-            Gerencie sua conta, aparência, privacidade e preferências.
-          </Text>
+          <Text variant="title">{t.settings.title}</Text>
+          <Text color="textMuted">{t.settings.subtitle}</Text>
         </FadeIn>
 
         {/* 1. PERFIL E CONTA DO USUÁRIO */}
@@ -137,7 +138,7 @@ export default function SettingsScreen() {
 
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text variant="label" color="textMuted">
-                    PERFIL CONECTADO
+                    {t.settings.connectedProfile}
                   </Text>
                   <Text variant="heading" numberOfLines={1}>
                     {currentUser.name}
@@ -172,26 +173,26 @@ export default function SettingsScreen() {
 
               {editingProfile && (
                 <View style={{ gap: spacing.md, paddingTop: spacing.xs }}>
-                  <Field label="Alterar seu nome" error={nameError ?? undefined}>
+                  <Field label={t.settings.changeNameLabel} error={nameError ?? undefined}>
                     <TextField
                       testID="profile-name-input"
                       value={nameInput}
                       onChangeText={setNameInput}
                       maxLength={USER_NAME_MAX_LENGTH}
-                      placeholder="Seu nome"
+                      placeholder={t.settings.yourNamePlaceholder}
                       invalid={!!nameError}
                     />
                   </Field>
                   <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                     <Button
-                      label="Cancelar"
+                      label={t.common.cancel}
                       variant="secondary"
                       onPress={() => setEditingProfile(false)}
                       style={{ flex: 1 }}
                     />
                     <Button
                       testID="save-profile-name-btn"
-                      label="Salvar"
+                      label={t.common.save}
                       loading={savingName}
                       onPress={handleSaveName}
                       style={{ flex: 1 }}
@@ -203,7 +204,65 @@ export default function SettingsScreen() {
           </FadeIn>
         )}
 
-        {/* 2. APARÊNCIA: MODO CLARO / NOTURNO / SISTEMA */}
+        {/* 2. IDIOMA DO APLICATIVO (PT / EN / ES) */}
+        <FadeIn delay={75}>
+          <Card style={{ gap: spacing.md }}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <IconBadge icon="language-outline" color={colors.primary} size={38} />
+                <View>
+                  <Text variant="bodyStrong">{t.settings.languageTitle}</Text>
+                  <Text variant="caption" color="textMuted">
+                    {t.settings.languageSubtitle}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.themeGrid}>
+              {LANGUAGE_OPTIONS.map((opt) => {
+                const selected = language === opt.code;
+                return (
+                  <Pressable
+                    key={opt.code}
+                    testID={`lang-option-${opt.code}`}
+                    onPress={() => setLanguage(opt.code)}
+                    style={({ pressed }) => [
+                      styles.themeCard,
+                      {
+                        backgroundColor: selected
+                          ? colors.primarySoft
+                          : colors.surfaceRaised,
+                        borderColor: selected ? colors.primary : colors.border,
+                        transform: [{ scale: pressed ? 0.97 : 1 }],
+                      },
+                    ]}>
+                    <Text style={{ fontSize: 18 }}>{opt.flag}</Text>
+                    <Text
+                      variant="bodyStrong"
+                      style={{
+                        fontSize: 13,
+                        color: selected ? colors.primary : colors.text,
+                      }}>
+                      {opt.label}
+                    </Text>
+                    <Text
+                      variant="caption"
+                      style={{
+                        fontSize: 10.5,
+                        color: colors.textMuted,
+                        textAlign: 'center',
+                      }}>
+                      {opt.code.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Card>
+        </FadeIn>
+
+        {/* 3. APARÊNCIA: MODO CLARO / NOTURNO / SISTEMA */}
         <FadeIn delay={90}>
           <Card style={{ gap: spacing.md }}>
             <View style={styles.sectionHeaderRow}>
@@ -214,16 +273,16 @@ export default function SettingsScreen() {
                   size={38}
                 />
                 <View>
-                  <Text variant="bodyStrong">Aparência e Tema</Text>
+                  <Text variant="bodyStrong">{t.settings.appearanceTitle}</Text>
                   <Text variant="caption" color="textMuted">
-                    {isDark ? 'Modo Noturno ativo' : 'Modo Claro ativo'}
+                    {isDark ? t.settings.darkModeActive : t.settings.lightModeActive}
                   </Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.themeGrid}>
-              {THEME_OPTIONS.map((opt) => {
+              {themeOptions.map((opt) => {
                 const selected = mode === opt.mode;
                 return (
                   <Pressable
@@ -269,7 +328,7 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 3. PRIVACIDADE DOS VALORES */}
+        {/* 4. PRIVACIDADE DOS VALORES */}
         <FadeIn delay={130}>
           <Card style={{ gap: spacing.md }}>
             <View style={styles.sectionHeaderRow}>
@@ -280,15 +339,15 @@ export default function SettingsScreen() {
                   size={38}
                 />
                 <View style={{ flex: 1 }}>
-                  <Text variant="bodyStrong">Ocultar Saldos</Text>
+                  <Text variant="bodyStrong">{t.settings.hideBalancesTitle}</Text>
                   <Text variant="caption" color="textMuted">
-                    Substitui valores por asteriscos ({MASKED_BALANCE})
+                    {t.settings.hideBalancesDesc(MASKED_BALANCE)}
                   </Text>
                 </View>
               </View>
 
               <Chip
-                label={isBalanceHidden ? 'Oculto' : 'Visível'}
+                label={isBalanceHidden ? t.settings.hiddenChip : t.settings.visibleChip}
                 icon={isBalanceHidden ? 'eye-off' : 'eye'}
                 selected={isBalanceHidden}
                 onPress={toggleBalanceHidden}
@@ -297,11 +356,11 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 4. RESUMO DA CARTEIRA E ATALHOS */}
+        {/* 5. RESUMO DA CARTEIRA E ATALHOS */}
         <FadeIn delay={170}>
           <Card style={{ gap: spacing.md }}>
             <Text variant="label" color="textMuted">
-              RESUMO DA CARTEIRA
+              {t.settings.walletSummarySection}
             </Text>
 
             <Pressable
@@ -318,10 +377,11 @@ export default function SettingsScreen() {
                 <Ionicons name="wallet-outline" size={20} color={colors.primary} />
                 <View>
                   <Text variant="bodyStrong">
-                    {accounts.length} {accounts.length === 1 ? 'conta bancária' : 'contas bancárias'}
+                    {t.settings.bankAccountsCount(accounts.length)}
                   </Text>
                   <Text variant="caption" color="textMuted">
-                    Saldo consolidado: {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
+                    {t.accounts.consolidatedPrefix}{' '}
+                    {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
                   </Text>
                 </View>
               </View>
@@ -339,9 +399,11 @@ export default function SettingsScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                 <Ionicons name="pricetags-outline" size={20} color={colors.primary} />
                 <View>
-                  <Text variant="bodyStrong">{categories.length} categorias ativas</Text>
+                  <Text variant="bodyStrong">
+                    {t.settings.activeCategoriesCount(categories.length)}
+                  </Text>
                   <Text variant="caption" color="textMuted">
-                    Categorias padrão de receitas e gastos
+                    {t.settings.activeCategoriesDesc}
                   </Text>
                 </View>
               </View>
@@ -349,16 +411,16 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 5. SESSÃO E EXCLUSÃO DE CONTA */}
+        {/* 6. SESSÃO E EXCLUSÃO DE CONTA */}
         <FadeIn delay={210}>
           <Card style={{ gap: spacing.md }}>
             <Text variant="label" color="textMuted">
-              SESSÃO E SEGURANÇA DA CONTA
+              {t.settings.sessionSection}
             </Text>
 
             <Button
               testID="sign-out-btn"
-              label="Sair da conta (Sign out)"
+              label={t.settings.signOutBtn}
               variant="secondary"
               icon="log-out-outline"
               onPress={handleSignOut}
@@ -366,7 +428,7 @@ export default function SettingsScreen() {
 
             <Button
               testID="delete-user-account-btn"
-              label="Excluir minha conta permanentemente"
+              label={t.settings.deleteAccountBtn}
               variant="danger"
               icon="trash-outline"
               onPress={() => setConfirmDeleteUser(true)}
@@ -378,9 +440,9 @@ export default function SettingsScreen() {
       {/* Modal de confirmação para excluir a conta de usuário */}
       <ConfirmDialog
         visible={confirmDeleteUser}
-        title="Excluir sua conta permanentemente?"
-        message="Todos os seus dados, contas bancárias e transações serão apagados definitivamente deste dispositivo."
-        confirmLabel="Excluir tudo"
+        title={t.settings.deleteAccountConfirmTitle}
+        message={t.settings.deleteAccountConfirmMessage}
+        confirmLabel={t.settings.deleteAccountConfirmBtn}
         onConfirm={handleConfirmDeleteUser}
         onCancel={() => setConfirmDeleteUser(false)}
       />

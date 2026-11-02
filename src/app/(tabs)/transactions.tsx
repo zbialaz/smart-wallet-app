@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { SectionList, View } from 'react-native';
 
 import { formatRelativeDate } from '@/shared/date';
+import { useI18n } from '@/shared/i18n';
 import type { Transaction } from '@/domains/transactions/transaction';
 import { useWallet } from '@/store/wallet-store';
 import { EmptyState, Fab, Screen, Button } from '@/ui/components';
@@ -13,33 +14,34 @@ import { spacing, useTheme } from '@/ui/theme';
 export default function TransactionsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { language, t } = useI18n();
   const month = useWallet((s) => s.selectedMonth);
   const setMonth = useWallet((s) => s.setMonth);
   const transactions = useWallet((s) => s.transactions);
 
   // Agrupa por data. A lista já vem ordenada do repositório (mais recentes primeiro).
   const sections: { date: string; data: Transaction[] }[] = [];
-  for (const t of transactions) {
+  for (const tItem of transactions) {
     const last = sections[sections.length - 1];
-    if (last && last.date === t.date) last.data.push(t);
-    else sections.push({ date: t.date, data: [t] });
+    if (last && last.date === tItem.date) last.data.push(tItem);
+    else sections.push({ date: tItem.date, data: [tItem] });
   }
 
   return (
     <Screen>
       <View style={{ padding: spacing.xl, gap: spacing.lg }}>
-        <Text variant="title">Transações</Text>
+        <Text variant="title">{t.transactions.title}</Text>
         <MonthSwitcher month={month} onChange={setMonth} />
       </View>
 
       <SectionList
         sections={sections}
-        keyExtractor={(t) => t.id}
+        keyExtractor={(tItem) => tItem.id}
         contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: 120, flexGrow: 1 }}
         stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section }: { section: { date: string; data: Transaction[] } }) => (
           <Text variant="label" color="textMuted" style={{ marginTop: spacing.lg, marginBottom: spacing.xs }}>
-            {formatRelativeDate(section.date)}
+            {formatRelativeDate(section.date, undefined, language)}
           </Text>
         )}
         renderItem={({ item }) => (
@@ -53,9 +55,9 @@ export default function TransactionsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="receipt"
-            title="Nenhuma transação"
-            message="Neste mês você ainda não registrou nada."
-            action={<Button label="Registrar agora" icon="add" onPress={() => router.push('/transaction-form')} />}
+            title={t.transactions.emptyTitle}
+            message={t.transactions.emptyMessage}
+            action={<Button label={t.transactions.registerNow} icon="add" onPress={() => router.push('/transaction-form')} />}
           />
         }
       />

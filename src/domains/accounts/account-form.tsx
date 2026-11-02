@@ -7,6 +7,7 @@ import {
   ACCOUNT_NAME_MAX_LENGTH,
   type AccountField,
 } from '@/domains/accounts/account';
+import { useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 import type { FieldErrors } from '@/shared/result';
 import { useWallet } from '@/store/wallet-store';
@@ -16,6 +17,7 @@ import { spacing, useTheme } from '@/ui/theme';
 /** Formulário de conta, usado no onboarding (US-023) e em "Adicionar conta" (US-007). */
 export function AccountForm({ submitLabel, onDone }: { submitLabel: string; onDone: () => void }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const createAccount = useWallet((s) => s.createAccount);
 
   const [name, setName] = useState('');
@@ -39,7 +41,7 @@ export function AccountForm({ submitLabel, onDone }: { submitLabel: string; onDo
     <ScrollView
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ gap: spacing.xl, paddingBottom: spacing.xxxl }}>
-      <Field label="Banco mais usado">
+      <Field label={t.accounts.mostUsedBankLabel}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
           {BANK_PRESETS.map((bank) => (
             <Chip
@@ -57,19 +59,19 @@ export function AccountForm({ submitLabel, onDone }: { submitLabel: string; onDo
         </View>
       </Field>
 
-      <Field label="Nome / apelido da conta" error={errors.name}>
+      <Field label={t.accounts.accountNameLabel} error={errors.name}>
         <TextField
           testID="account-name-input"
           value={name}
           onChangeText={setName}
-          placeholder="Ex.: Nubank, Carteira…"
+          placeholder={t.accounts.accountNamePlaceholder}
           maxLength={ACCOUNT_NAME_MAX_LENGTH}
           invalid={!!errors.name}
           style={{ borderColor: errors.name ? colors.expense : undefined }}
         />
       </Field>
 
-      <Field label="Saldo inicial" error={errors.initialBalance}>
+      <Field label={t.accounts.initialBalanceLabel} error={errors.initialBalance}>
         <AmountInput value={initialBalance} onChange={setInitialBalance} accent={colors.income} invalid={!!errors.initialBalance} />
       </Field>
 

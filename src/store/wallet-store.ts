@@ -32,6 +32,7 @@ import {
 } from '@/domains/transactions/transaction';
 import { createTransactionRepository } from '@/domains/transactions/transaction-repository';
 import { currentYearMonth, today, type YearMonth } from '@/shared/date';
+import { useI18nStore, type AppLanguage } from '@/shared/i18n';
 import { generateId, nowISO } from '@/shared/id';
 import { fail, ok, type FieldErrors, type Result } from '@/shared/result';
 import { useThemeStore, type ThemeMode } from '@/ui/theme';
@@ -62,6 +63,7 @@ interface WalletState {
 
   currentUser: User | null;
   themeMode: ThemeMode;
+  language: AppLanguage;
   selectedMonth: YearMonth;
   accounts: AccountWithBalance[];
   categories: Category[];
@@ -72,6 +74,7 @@ interface WalletState {
   refresh(): Promise<void>;
   setMonth(month: YearMonth): Promise<void>;
   setThemeMode(mode: ThemeMode): Promise<void>;
+  setLanguage(lang: AppLanguage): Promise<void>;
   toggleTheme(currentlyDark: boolean): Promise<void>;
   toggleBalanceHidden(): Promise<void>;
 
@@ -109,6 +112,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     errorMessage: null,
     currentUser: null,
     themeMode: 'system',
+    language: 'pt',
     selectedMonth: currentYearMonth(),
     accounts: [],
     categories: [],
@@ -145,6 +149,17 @@ export const useWallet = create<WalletState>()((set, get) => {
         );
         if (savedHidden) {
           useThemeStore.getState().setBalanceHidden(savedHidden.value === '1');
+        }
+
+        const savedLang = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'app_language'`,
+        );
+        if (
+          savedLang &&
+          (savedLang.value === 'pt' || savedLang.value === 'en' || savedLang.value === 'es')
+        ) {
+          useI18nStore.getState().setLanguage(savedLang.value);
+          set({ language: savedLang.value });
         }
 
         const savedUserRow = await db.getFirstAsync<{ value: string }>(
@@ -203,6 +218,18 @@ export const useWallet = create<WalletState>()((set, get) => {
         await db.runAsync(
           `INSERT OR REPLACE INTO settings (key, value) VALUES ('theme_mode', ?)`,
           mode,
+        );
+      }
+    },
+
+    async setLanguage(lang) {
+      useI18nStore.getState().setLanguage(lang);
+      set({ language: lang });
+      const db = get().db;
+      if (db) {
+        await db.runAsync(
+          `INSERT OR REPLACE INTO settings (key, value) VALUES ('app_language', ?)`,
+          lang,
         );
       }
     },

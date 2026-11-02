@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useI18n } from '@/shared/i18n';
 import { useCategoryBreakdown, useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
@@ -18,6 +19,7 @@ import { WalletPocket } from '@/ui/wallet-pocket';
 export default function DashboardScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const month = useWallet((s) => s.selectedMonth);
   const setMonth = useWallet((s) => s.setMonth);
   const transactions = useWallet((s) => s.transactions);
@@ -53,7 +55,7 @@ export default function DashboardScreen() {
         {/* Gráfico de Distribuição */}
         <FadeIn delay={120} style={styles.section}>
           <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-            DISTRIBUIÇÃO
+            {t.dashboard.distribution}
           </Text>
 
           {slices.length > 0 ? (
@@ -61,8 +63,8 @@ export default function DashboardScreen() {
           ) : (
             <EmptyState
               icon="pie-chart-outline"
-              title="Sem despesas no mês"
-              message="Seus gastos categorizados aparecerão aqui de forma clara."
+              title={t.dashboard.noExpensesTitle}
+              message={t.dashboard.noExpensesMessage}
             />
           )}
         </FadeIn>
@@ -74,7 +76,7 @@ export default function DashboardScreen() {
         <FadeIn delay={180} style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-              TRANSAÇÕES
+              {t.dashboard.transactionsSection}
             </Text>
             {transactions.length > 5 && (
               <Text
@@ -82,14 +84,14 @@ export default function DashboardScreen() {
                 color="primary"
                 style={{ fontWeight: '600' }}
                 onPress={() => router.navigate('/transactions')}>
-                Ver todas ({transactions.length})
+                {t.dashboard.seeAll(transactions.length)}
               </Text>
             )}
           </View>
 
           {transactions.length === 0 ? (
             <Text color="textMuted" style={{ fontSize: 14, paddingTop: spacing.sm }}>
-              Nenhuma movimentação neste mês.
+              {t.dashboard.noTransactionsThisMonth}
             </Text>
           ) : (
             <View>

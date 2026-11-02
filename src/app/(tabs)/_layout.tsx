@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
 
+import { useI18n } from '@/shared/i18n';
 import { useTheme } from '@/ui/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -15,6 +16,7 @@ const tab = (title: string, icon: IconName, iconActive: IconName) => ({
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const { t } = useI18n();
 
   return (
     <Tabs
@@ -31,10 +33,10 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700', paddingBottom: 6 },
         sceneStyle: { backgroundColor: colors.background },
       }}>
-      <Tabs.Screen name="index" options={tab('Início', 'pie-chart-outline', 'pie-chart')} />
-      <Tabs.Screen name="transactions" options={tab('Transações', 'swap-vertical-outline', 'swap-vertical')} />
-      <Tabs.Screen name="accounts" options={tab('Contas', 'wallet-outline', 'wallet')} />
-      <Tabs.Screen name="settings" options={tab('Configurações', 'settings-outline', 'settings')} />
+      <Tabs.Screen name="index" options={tab(t.tabs.home, 'pie-chart-outline', 'pie-chart')} />
+      <Tabs.Screen name="transactions" options={tab(t.tabs.transactions, 'swap-vertical-outline', 'swap-vertical')} />
+      <Tabs.Screen name="accounts" options={tab(t.tabs.accounts, 'wallet-outline', 'wallet')} />
+      <Tabs.Screen name="settings" options={tab(t.tabs.settings, 'settings-outline', 'settings')} />
     </Tabs>
   );
 }

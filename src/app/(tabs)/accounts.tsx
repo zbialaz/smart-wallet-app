@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import type { AccountWithBalance } from '@/domains/accounts/account';
+import { useI18n } from '@/shared/i18n';
 import { useConsolidatedBalance } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import {
@@ -23,6 +24,7 @@ export default function AccountsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { isBalanceHidden } = usePrivacy();
+  const { t } = useI18n();
 
   const accounts = useWallet((s) => s.accounts);
   const toggleBalanceHidden = useWallet((s) => s.toggleBalanceHidden);
@@ -42,12 +44,13 @@ export default function AccountsScreen() {
     <Screen>
       <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.xl, paddingBottom: 60 }}>
         <FadeIn>
-          <Text variant="title">Contas Bancárias</Text>
+          <Text variant="title">{t.accounts.title}</Text>
           <Pressable
             onPress={toggleBalanceHidden}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <Text color="textMuted">
-              Saldo consolidado: {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
+              {t.accounts.consolidatedPrefix}{' '}
+              {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
             </Text>
             <Ionicons
               name={isBalanceHidden ? 'eye-off-outline' : 'eye-outline'}
@@ -65,7 +68,7 @@ export default function AccountsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text variant="bodyStrong">{account.name}</Text>
                   <Text variant="caption" color="textMuted">
-                    Saldo atual
+                    {t.accounts.currentBalance}
                   </Text>
                 </View>
                 <Pressable onPress={toggleBalanceHidden}>
@@ -86,7 +89,7 @@ export default function AccountsScreen() {
                 <Pressable
                   testID={`delete-bank-account-${account.name}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`Excluir conta ${account.name}`}
+                  accessibilityLabel={t.accounts.deleteTitle(account.name)}
                   onPress={() => setBankAccountToDelete(account)}
                   hitSlop={10}
                   style={({ pressed }) => ({
@@ -105,15 +108,15 @@ export default function AccountsScreen() {
           ))}
         </View>
 
-        <Button label="Adicionar conta bancária" icon="add" onPress={() => router.push('/account-form')} testID="add-account" />
+        <Button label={t.accounts.addBankAccount} icon="add" onPress={() => router.push('/account-form')} testID="add-account" />
       </ScrollView>
 
       {/* Modal de confirmação para excluir uma conta bancária */}
       <ConfirmDialog
         visible={!!bankAccountToDelete}
-        title={`Excluir ${bankAccountToDelete?.name ?? 'conta'}?`}
-        message="A conta bancária e todas as transações vinculadas a ela serão removidas."
-        confirmLabel="Excluir conta"
+        title={t.accounts.deleteTitle(bankAccountToDelete?.name ?? '')}
+        message={t.accounts.deleteMessage}
+        confirmLabel={t.accounts.deleteConfirmBtn}
         onConfirm={handleConfirmDeleteBankAccount}
         onCancel={() => setBankAccountToDelete(null)}
       />
