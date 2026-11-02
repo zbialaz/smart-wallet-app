@@ -1,8 +1,8 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DATABASE_NAME, migrateDatabase } from '@/infrastructure/database/migrations';
@@ -11,10 +11,10 @@ import { Text } from '@/ui/text';
 import { useTheme } from '@/ui/theme';
 
 /**
- * Raiz do app. Ordem de inicialização:
- *   SQLiteProvider abre o banco e roda as migrações (onInit)
- *   → Bootstrap entrega o banco para a store
- *   → só então as telas são renderizadas.
+ * Raiz do app.
+ * IMPORTANTE (Expo Router): O <Stack> deve permanecer sempre montado desde o 1º render
+ * para que o navegador raiz processe a árvore de rotas ('ROUTE_NAMES_CHANGED').
+ * O estado de carregamento/erro é exibido como camada sobreposta (overlay).
  */
 export default function RootLayout() {
   const { isDark } = useTheme();
@@ -31,48 +31,83 @@ export default function RootLayout() {
 
 function Bootstrap() {
   const db = useSQLiteContext();
+  const router = useRouter();
+  const segments = useSegments();
   const { colors } = useTheme();
+
   const status = useWallet((s) => s.status);
   const errorMessage = useWallet((s) => s.errorMessage);
+  const currentUser = useWallet((s) => s.currentUser);
+  const hasAccounts = useWallet((s) => s.accounts.length > 0);
 
   useEffect(() => {
     useWallet.getState().init(db);
   }, [db]);
 
-  const centered = {
-    flex: 1,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 12,
-    padding: 32,
-    backgroundColor: colors.background,
-  };
+  // Guarda central de navegação: redireciona conforme sessão do usuário e contas bancárias
+  useEffect(() => {
+    if (status !== 'ready') return;
 
-  if (status === 'error') {
-    return (
-      <View style={centered}>
-        <Text variant="heading">Não foi possível abrir seus dados</Text>
-        <Text color="textMuted" style={{ textAlign: 'center' }}>
-          {errorMessage}
-        </Text>
-      </View>
-    );
-  }
+    const currentRoute = segments[0];
+    const inAuth = currentRoute === 'auth';
+    const inOnboarding = currentRoute === 'onboarding';
 
-  if (status !== 'ready') {
-    return (
-      <View style={centered}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
+    if (!currentUser) {
+      if (!inAuth) {
+        router.replace('/auth');
+      }
+      return;
+    }
+
+    // US-023: usuário logado mas ainda sem nenhuma conta bancária -> Onboarding
+    if (!hasAccounts) {
+      if (!inOnboarding) {
+        router.replace('/onboarding');
+      }
+      return;
+    }
+
+    // Usuário logado e com conta bancária: se estiver em auth ou onboarding, vai para a home
+    if (inAuth || inOnboarding) {
+      router.replace('/');
+    }
+  }, [status, currentUser, hasAccounts, segments, router]);
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-      <Stack.Screen name="transaction-form" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="account-form" options={{ presentation: 'modal' }} />
-    </Stack>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="auth" options={{ gestureEnabled: false, animation: 'fade' }} />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: 'fade' }} />
+        <Stack.Screen name="transaction-form" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="account-form" options={{ presentation: 'modal' }} />
+      </Stack>
+
+      {status === 'error' && (
+        <View style={[styles.overlay, { backgroundColor: colors.background }]}>
+          <Text variant="heading">Não foi possível abrir seus dados</Text>
+          <Text color="textMuted" style={{ textAlign: 'center' }}>
+            {errorMessage}
+          </Text>
+        </View>
+      )}
+
+      {status !== 'ready' && status !== 'error' && (
+        <View style={[styles.overlay, { backgroundColor: colors.background }]}>
+          <ActivityIndicator color={colors.primary} size="large" />
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 32,
+    zIndex: 999,
+  },
+});
