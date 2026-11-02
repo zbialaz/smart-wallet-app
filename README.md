@@ -2,26 +2,6 @@
 
 Aplicativo mobile offline-first de controle financeiro pessoal para consolidar múltiplas contas bancárias (Nubank, Santander, Itaú, Inter, Carteira, etc.), categorizar gastos e receitas, e visualizar o fluxo de caixa mensal.
 
----
-
-## ✨ Funcionalidades do MVP (v1.0)
-
-| ID | Funcionalidade | Domínio | Status |
-|----|----------------|---------|--------|
-| **US-001** | Registrar gasto manualmente | `transactions` | ✅ Implementado |
-| **US-002** | Registrar receita | `transactions` | ✅ Implementado |
-| **US-003** | Editar transação existente | `transactions` | ✅ Implementado |
-| **US-004** | Excluir transação com confirmação | `transactions` | ✅ Implementado |
-| **US-007** | Cadastrar conta bancária e saldo consolidado | `accounts` | ✅ Implementado |
-| **US-008** | Visualizar saldo calculado por conta | `accounts` | ✅ Implementado |
-| **US-010** | Categorias padrão pré-configuradas (12 categorias) | `categories` | ✅ Implementado |
-| **US-012** | Resumo financeiro do mês (receitas, gastos, saldo) | `dashboard` | ✅ Implementado |
-| **US-013** | Gráfico Donut interativo de gastos por categoria | `dashboard` | ✅ Implementado |
-| **US-020** | Modo Claro e Modo Noturno / Dark Mode (com persistência) | `settings / ui` | ✅ Implementado |
-| **US-023** | Onboarding na primeira abertura (1ª conta + saldo inicial) | `accounts` | ✅ Implementado |
-
----
-
 ## 🏗️ Arquitetura (DDD-Lite)
 
 O projeto segue uma abordagem **Domain-Driven Design (DDD-lite)** com regras de negócio puras e testáveis separadas da infraestrutura (SQLite) e da interface (React Native):
