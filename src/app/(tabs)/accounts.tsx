@@ -6,7 +6,7 @@ import { useConsolidatedBalance } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import { Button, Card, Chip, FadeIn, IconBadge, Screen, ThemeToggleButton } from '@/ui/components';
 import { Text } from '@/ui/text';
-import { spacing, usePrivacy, useTheme, type PrivacyMode, type ThemeMode } from '@/ui/theme';
+import { spacing, usePrivacy, useTheme, type ThemeMode } from '@/ui/theme';
 import { MASKED_BALANCE } from '@/ui/wallet-pocket';
 
 const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: 'phone-portrait-outline' | 'sunny-outline' | 'moon-outline' }[] = [
@@ -15,20 +15,14 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: 'phone-portrait-out
   { mode: 'dark', label: 'Noturno', icon: 'moon-outline' },
 ];
 
-const PRIVACY_OPTIONS: { mode: PrivacyMode; label: string; icon: 'medical' | 'wallet' }[] = [
-  { mode: 'asterisks', label: 'Asteriscos (R$ ****)', icon: 'medical' },
-  { mode: 'wallet-flap', label: 'Fechar Carteira (Física)', icon: 'wallet' },
-];
-
 /** US-007 (cadastrar conta), US-008 (saldo por conta), US-020 (tema claro/escuro) e Privacidade. */
 export default function AccountsScreen() {
   const router = useRouter();
   const { colors, mode } = useTheme();
-  const { isBalanceHidden, privacyMode } = usePrivacy();
+  const { isBalanceHidden } = usePrivacy();
   const accounts = useWallet((s) => s.accounts);
   const setThemeMode = useWallet((s) => s.setThemeMode);
   const toggleBalanceHidden = useWallet((s) => s.toggleBalanceHidden);
-  const setPrivacyMode = useWallet((s) => s.setPrivacyMode);
   const consolidated = useConsolidatedBalance();
 
   return (
@@ -61,9 +55,7 @@ export default function AccountsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text variant="bodyStrong">{account.name}</Text>
                   <Text variant="caption" color="textMuted">
-                    {isBalanceHidden && privacyMode === 'wallet-flap'
-                      ? 'Guardado na carteira'
-                      : 'Saldo atual'}
+                    Saldo atual
                   </Text>
                 </View>
                 <Pressable onPress={toggleBalanceHidden}>
@@ -88,36 +80,23 @@ export default function AccountsScreen() {
 
         <Button label="Adicionar conta" icon="add" onPress={() => router.push('/account-form')} testID="add-account" />
 
-        {/* Preferência de Ocultação de Saldo (Asteriscos vs Fechar Carteira) */}
+        {/* Preferência de Ocultação de Saldo (Asteriscos) */}
         <FadeIn delay={120}>
-          <Card style={{ gap: spacing.md }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ gap: 2, flex: 1 }}>
-                <Text variant="label" color="textMuted">
-                  PRIVACIDADE DOS VALORES
-                </Text>
-                <Text variant="caption" color="textMuted">
-                  Teste os dois estilos de ocultação do saldo da carteira.
-                </Text>
-              </View>
-              <Chip
-                label={isBalanceHidden ? 'Oculto' : 'Visível'}
-                icon={isBalanceHidden ? 'eye-off' : 'eye'}
-                selected={isBalanceHidden}
-                onPress={toggleBalanceHidden}
-              />
+          <Card style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md }}>
+            <View style={{ gap: 2, flex: 1 }}>
+              <Text variant="label" color="textMuted">
+                PRIVACIDADE DOS VALORES
+              </Text>
+              <Text variant="caption" color="textMuted">
+                Ocultar saldos das contas com asteriscos ({MASKED_BALANCE}).
+              </Text>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-              {PRIVACY_OPTIONS.map((opt) => (
-                <Chip
-                  key={opt.mode}
-                  label={opt.label}
-                  icon={opt.icon}
-                  selected={privacyMode === opt.mode}
-                  onPress={() => setPrivacyMode(opt.mode)}
-                />
-              ))}
-            </View>
+            <Chip
+              label={isBalanceHidden ? 'Oculto' : 'Visível'}
+              icon={isBalanceHidden ? 'eye-off' : 'eye'}
+              selected={isBalanceHidden}
+              onPress={toggleBalanceHidden}
+            />
           </Card>
         </FadeIn>
 

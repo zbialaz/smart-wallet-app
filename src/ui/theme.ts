@@ -73,7 +73,6 @@ export const darkColors: ThemeColors = {
 export type ColorToken = keyof typeof lightColors;
 export type ThemeColors = { [K in ColorToken]: string };
 export type ThemeMode = 'system' | 'light' | 'dark';
-export type PrivacyMode = 'asterisks' | 'wallet-flap';
 
 /** Export estático padrão (compatibilidade) */
 export const colors: ThemeColors = lightColors;
@@ -81,37 +80,29 @@ export const colors: ThemeColors = lightColors;
 interface ThemeStoreState {
   mode: ThemeMode;
   isBalanceHidden: boolean;
-  privacyMode: PrivacyMode;
   setMode: (mode: ThemeMode) => void;
   setBalanceHidden: (hidden: boolean) => void;
   toggleBalanceHidden: () => void;
-  setPrivacyMode: (privacyMode: PrivacyMode) => void;
 }
 
 export const useThemeStore = create<ThemeStoreState>()((set) => ({
   mode: 'system',
   isBalanceHidden: false,
-  privacyMode: 'wallet-flap',
   setMode: (mode) => set({ mode }),
   setBalanceHidden: (isBalanceHidden) => set({ isBalanceHidden }),
   toggleBalanceHidden: () => set((s) => ({ isBalanceHidden: !s.isBalanceHidden })),
-  setPrivacyMode: (privacyMode) => set({ privacyMode }),
 }));
 
-/** Hook reativo de privacidade de valores: permite testar modo Asteriscos vs Fechar Carteira com física. */
+/** Hook reativo de privacidade de valores (oculta saldos com R$ ****). */
 export function usePrivacy() {
   const isBalanceHidden = useThemeStore((s) => s.isBalanceHidden);
-  const privacyMode = useThemeStore((s) => s.privacyMode);
   const setBalanceHidden = useThemeStore((s) => s.setBalanceHidden);
   const toggleBalanceHidden = useThemeStore((s) => s.toggleBalanceHidden);
-  const setPrivacyMode = useThemeStore((s) => s.setPrivacyMode);
 
   return {
     isBalanceHidden,
-    privacyMode,
     setBalanceHidden,
     toggleBalanceHidden,
-    setPrivacyMode,
   };
 }
 
