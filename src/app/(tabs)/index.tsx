@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useCategoryBreakdown, useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
-import { EmptyState, Fab, FadeIn, Screen, ThemeToggleButton } from '@/ui/components';
+import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
 import { DonutChart } from '@/ui/donut-chart';
 import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
@@ -32,12 +32,9 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
         
-        {/* Cabeçalho: Seletor de Período + Alternância de Modo Claro/Noturno (US-020) */}
-        <FadeIn style={styles.topBarRow}>
-          <View style={{ flex: 1 }}>
-            <MonthSwitcher month={month} onChange={setMonth} />
-          </View>
-          <ThemeToggleButton />
+        {/* Seletor de Período Discreto */}
+        <FadeIn>
+          <MonthSwitcher month={month} onChange={setMonth} />
         </FadeIn>
 
         {/* A Carteira Real: Slots de Cartões de Banco + Bolso em Couro com Saldo */}

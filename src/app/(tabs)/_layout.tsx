@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
 
-import { useWallet } from '@/store/wallet-store';
 import { useTheme } from '@/ui/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -16,10 +15,6 @@ const tab = (title: string, icon: IconName, iconActive: IconName) => ({
 
 export default function TabsLayout() {
   const { colors } = useTheme();
-  const hasAccounts = useWallet((s) => s.accounts.length > 0);
-
-  // US-023: sem nenhuma conta o app não funciona → onboarding
-  if (!hasAccounts) return <Redirect href="/onboarding" />;
 
   return (
     <Tabs
@@ -39,6 +34,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={tab('Início', 'pie-chart-outline', 'pie-chart')} />
       <Tabs.Screen name="transactions" options={tab('Transações', 'swap-vertical-outline', 'swap-vertical')} />
       <Tabs.Screen name="accounts" options={tab('Contas', 'wallet-outline', 'wallet')} />
+      <Tabs.Screen name="settings" options={tab('Configurações', 'settings-outline', 'settings')} />
     </Tabs>
   );
 }

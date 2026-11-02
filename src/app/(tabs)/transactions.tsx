@@ -4,7 +4,7 @@ import { SectionList, View } from 'react-native';
 import { formatRelativeDate } from '@/shared/date';
 import type { Transaction } from '@/domains/transactions/transaction';
 import { useWallet } from '@/store/wallet-store';
-import { EmptyState, Fab, Screen, Button, ThemeToggleButton } from '@/ui/components';
+import { EmptyState, Fab, Screen, Button } from '@/ui/components';
 import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { spacing, useTheme } from '@/ui/theme';
@@ -28,10 +28,7 @@ export default function TransactionsScreen() {
   return (
     <Screen>
       <View style={{ padding: spacing.xl, gap: spacing.lg }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text variant="title">Transações</Text>
-          <ThemeToggleButton />
-        </View>
+        <Text variant="title">Transações</Text>
         <MonthSwitcher month={month} onChange={setMonth} />
       </View>
 
