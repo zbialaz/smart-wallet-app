@@ -14,6 +14,7 @@ import {
   ConfirmDialog,
   FadeIn,
   Field,
+  FlagIcon,
   IconBadge,
   Screen,
   TextField,
@@ -209,7 +210,7 @@ export default function SettingsScreen() {
           <Card style={{ gap: spacing.md }}>
             <View style={styles.sectionHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <IconBadge icon="language-outline" color={colors.primary} size={38} />
+                <IconBadge icon="globe-outline" color={colors.primary} size={38} />
                 <View>
                   <Text variant="bodyStrong">{t.settings.languageTitle}</Text>
                   <Text variant="caption" color="textMuted">
@@ -237,7 +238,7 @@ export default function SettingsScreen() {
                         transform: [{ scale: pressed ? 0.97 : 1 }],
                       },
                     ]}>
-                    <Text style={{ fontSize: 18 }}>{opt.flag}</Text>
+                    <FlagIcon code={opt.code} size={26} />
                     <Text
                       variant="bodyStrong"
                       style={{

@@ -15,8 +15,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Polygon, Rect } from 'react-native-svg';
 
-import { useI18n } from '@/shared/i18n';
+import { useI18n, type AppLanguage } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
 
@@ -219,6 +220,72 @@ export function Chip({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+/** Ícone vetorial de bandeira (Brasil, EUA, Espanha) em SVG puro — funciona em qualquer plataforma sem depender de fonte de emoji. */
+export function FlagIcon({
+  code,
+  size = 24,
+}: {
+  code: AppLanguage;
+  size?: number;
+}) {
+  const width = size;
+  const height = Math.round(size * 0.72);
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        borderRadius: 4,
+        overflow: 'hidden',
+        borderWidth: 0.75,
+        borderColor: 'rgba(0,0,0,0.18)',
+      }}>
+      {code === 'pt' && (
+        <Svg width="100%" height="100%" viewBox="0 0 28 20">
+          <Rect width="28" height="20" fill="#009B3A" />
+          <Polygon points="14,2.2 25.2,10 14,17.8 2.8,10" fill="#FEDF00" />
+          <Circle cx="14" cy="10" r="4.3" fill="#002776" />
+          <Path
+            d="M10.1 9.2 Q14 7.6 18.1 10.6"
+            stroke="#FFFFFF"
+            strokeWidth="1.1"
+            fill="none"
+          />
+        </Svg>
+      )}
+
+      {code === 'en' && (
+        <Svg width="100%" height="100%" viewBox="0 0 28 20">
+          <Rect width="28" height="20" fill="#FFFFFF" />
+          <Rect y="0" width="28" height="2.85" fill="#B22234" />
+          <Rect y="5.7" width="28" height="2.85" fill="#B22234" />
+          <Rect y="11.4" width="28" height="2.85" fill="#B22234" />
+          <Rect y="17.15" width="28" height="2.85" fill="#B22234" />
+          <Rect width="13" height="11.4" fill="#3C3B6E" />
+          <Circle cx="3.2" cy="3" r="0.85" fill="#FFFFFF" />
+          <Circle cx="6.5" cy="3" r="0.85" fill="#FFFFFF" />
+          <Circle cx="9.8" cy="3" r="0.85" fill="#FFFFFF" />
+          <Circle cx="4.8" cy="5.7" r="0.85" fill="#FFFFFF" />
+          <Circle cx="8.2" cy="5.7" r="0.85" fill="#FFFFFF" />
+          <Circle cx="3.2" cy="8.4" r="0.85" fill="#FFFFFF" />
+          <Circle cx="6.5" cy="8.4" r="0.85" fill="#FFFFFF" />
+          <Circle cx="9.8" cy="8.4" r="0.85" fill="#FFFFFF" />
+        </Svg>
+      )}
+
+      {code === 'es' && (
+        <Svg width="100%" height="100%" viewBox="0 0 28 20">
+          <Rect width="28" height="20" fill="#AA151B" />
+          <Rect y="5" width="28" height="10" fill="#F1BF00" />
+          <Rect x="6.2" y="7.2" width="3.2" height="4.8" rx="1" fill="#AA151B" />
+          <Circle cx="7.8" cy="9.6" r="0.9" fill="#F1BF00" />
+        </Svg>
+      )}
+    </View>
   );
 }
 

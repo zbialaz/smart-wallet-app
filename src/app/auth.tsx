@@ -27,6 +27,7 @@ import {
   Card,
   FadeIn,
   Field,
+  FlagIcon,
   IconBadge,
   Screen,
   TextField,
@@ -209,6 +210,7 @@ export default function AuthScreen() {
                           styles.langPillItem,
                           active && { backgroundColor: colors.surface, borderColor: colors.borderStrong, borderWidth: 1 },
                         ]}>
+                        <FlagIcon code={opt.code} size={16} />
                         <Text
                           variant="caption"
                           style={{
@@ -216,7 +218,7 @@ export default function AuthScreen() {
                             color: active ? colors.primary : colors.textMuted,
                             fontSize: 11,
                           }}>
-                          {opt.flag} {opt.code.toUpperCase()}
+                          {opt.code.toUpperCase()}
                         </Text>
                       </Pressable>
                     );
@@ -566,6 +568,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   langPillItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: radius.pill,
