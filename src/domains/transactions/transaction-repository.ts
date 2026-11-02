@@ -32,13 +32,15 @@ const toTransaction = (row: TransactionRow): Transaction => ({
 
 export function createTransactionRepository(db: SQLiteDatabase) {
   return {
-    /** Transações de um mês, das mais recentes para as mais antigas. */
-    async listByMonth(month: YearMonth): Promise<Transaction[]> {
+    /** Transações de um mês do usuário logado, das mais recentes para as mais antigas. */
+    async listByMonth(month: YearMonth, userId: string): Promise<Transaction[]> {
       const { start, end } = monthRange(month);
       const rows = await db.getAllAsync<TransactionRow>(
-        `SELECT * FROM transactions
-         WHERE date >= ? AND date < ?
-         ORDER BY date DESC, created_at DESC`,
+        `SELECT t.* FROM transactions t
+         INNER JOIN accounts a ON a.id = t.account_id
+         WHERE a.user_id = ? AND t.date >= ? AND t.date < ?
+         ORDER BY t.date DESC, t.created_at DESC`,
+        userId,
         start,
         end,
       );

@@ -72,6 +72,21 @@ const MIGRATIONS: Migration[] = [
       );
     `);
   },
+  // v3 — autenticação de usuários e isolamento de contas por usuário
+  async (db) => {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS users (
+        id            TEXT PRIMARY KEY NOT NULL,
+        name          TEXT NOT NULL,
+        email         TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        created_at    TEXT NOT NULL
+      );
+
+      ALTER TABLE accounts ADD COLUMN user_id TEXT REFERENCES users(id);
+      CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id);
+    `);
+  },
 ];
 
 export const DATABASE_NAME = 'smart-wallet.db';

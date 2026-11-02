@@ -13,6 +13,7 @@ import { Money } from '@/shared/money';
 
 interface AccountRow {
   id: string;
+  user_id: string | null;
   name: string;
   color: string;
   initial_balance_cents: number;
@@ -43,20 +44,23 @@ export interface AccountWithTotals {
 export function createAccountRepository(db: SQLiteDatabase) {
   return {
     /**
-     * Contas ativas + total de receitas e gastos de TODA a história de cada uma.
+     * Contas ativas do usuário logado + total de receitas e gastos de TODA a história de cada uma.
      * O cálculo final do saldo (RN-05) é feito pelo domínio, não pelo SQL.
      */
-    async listActiveWithTotals(): Promise<AccountWithTotals[]> {
-      const rows = await db.getAllAsync<AccountTotalsRow>(`
+    async listActiveWithTotals(userId: string): Promise<AccountWithTotals[]> {
+      const rows = await db.getAllAsync<AccountTotalsRow>(
+        `
         SELECT a.*,
           COALESCE(SUM(CASE WHEN t.type = 'income'  THEN t.amount_cents END), 0) AS income_cents,
           COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_cents END), 0) AS expense_cents
         FROM accounts a
         LEFT JOIN transactions t ON t.account_id = a.id
-        WHERE a.archived_at IS NULL
+        WHERE a.archived_at IS NULL AND a.user_id = ?
         GROUP BY a.id
         ORDER BY a.created_at
-      `);
+      `,
+        userId,
+      );
       return rows.map((row) => ({
         account: toAccount(row),
         income: Money.fromCents(row.income_cents),
@@ -64,17 +68,45 @@ export function createAccountRepository(db: SQLiteDatabase) {
       }));
     },
 
-    async insert(account: Account): Promise<void> {
+    async insert(account: Account, userId: string): Promise<void> {
       await db.runAsync(
-        `INSERT INTO accounts (id, name, color, initial_balance_cents, created_at, archived_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO accounts (id, user_id, name, color, initial_balance_cents, created_at, archived_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         account.id,
+        userId,
         account.name,
         account.color,
         account.initialBalance.cents,
         account.createdAt,
         account.archivedAt,
       );
+    },
+
+    /** Vincula contas antigas (criadas antes do sistema de login) ao primeiro usuário cadastrado. */
+    async attachOrphanAccountsToUser(userId: string): Promise<void> {
+      await db.runAsync(
+        'UPDATE accounts SET user_id = ? WHERE user_id IS NULL',
+        userId,
+      );
+    },
+
+    /** Exclui uma conta bancária e suas transações vinculadas. */
+    async remove(accountId: string, userId: string): Promise<void> {
+      await db.withTransactionAsync(async () => {
+        await db.runAsync(
+          `DELETE FROM transactions
+           WHERE account_id = ?
+             AND account_id IN (SELECT id FROM accounts WHERE id = ? AND user_id = ?)`,
+          accountId,
+          accountId,
+          userId,
+        );
+        await db.runAsync(
+          'DELETE FROM accounts WHERE id = ? AND user_id = ?',
+          accountId,
+          userId,
+        );
+      });
     },
   };
 }
