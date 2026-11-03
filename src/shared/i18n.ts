@@ -516,3 +516,4 @@ export function useI18n() {
     tCategory: (id: string, fallbackName: string) => translateCategory(id, fallbackName, language),
   };
 }
+

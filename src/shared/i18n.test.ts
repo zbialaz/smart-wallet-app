@@ -50,3 +50,4 @@ describe('i18n (Português, Inglês e Espanhol)', () => {
     expect(useI18nStore.getState().language).toBe('pt');
   });
 });
+
