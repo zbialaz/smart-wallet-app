@@ -5,12 +5,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { formatRelativeDate } from '@/shared/date';
 import { addMonths, currentYearMonth, formatYearMonth, type YearMonth } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
+import type { Money } from '@/shared/money';
 import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
-import { useAccountMap, useCategoryMap } from '@/store/selectors';
+import { useAccountMap, useCategoryMap, useExpenseComparison } from '@/store/selectors';
 
 import { IconBadge } from './components';
 import { Text } from './text';
-import { radius, spacing, useTheme, type ThemeColors } from './theme';
+import { radius, spacing, usePrivacy, useTheme, type ThemeColors } from './theme';
+import { MASKED_BALANCE } from './wallet-pocket';
 
 /**
  * Seletor de mês estilo "Cápsula Editorial"
@@ -121,6 +123,80 @@ export function TransactionRow({
         </Text>
       </View>
     </Pressable>
+  );
+}
+
+/**
+ * US-015 — Gasto do mês com indicador de variação vs. mês anterior.
+ * Aumento de gasto é "ruim" (cor de gasto); queda é "boa" (cor de receita).
+ */
+export function SpendingComparison({ expense }: { expense: Money }) {
+  const { colors } = useTheme();
+  const { t } = useI18n();
+  const comparison = useExpenseComparison();
+  const { isBalanceHidden } = usePrivacy();
+
+  let label: string;
+  let color: string = colors.textMuted;
+  let icon: 'trending-up' | 'trending-down' | 'remove' | 'help-circle-outline' = 'help-circle-outline';
+
+  switch (comparison.kind) {
+    case 'up':
+      label = t.dashboard.compareUp(comparison.percent);
+      color = colors.expense;
+      icon = 'trending-up';
+      break;
+    case 'down':
+      label = t.dashboard.compareDown(comparison.percent);
+      color = colors.income;
+      icon = 'trending-down';
+      break;
+    case 'same':
+      label = t.dashboard.compareSame;
+      icon = 'remove';
+      break;
+    default:
+      label = t.dashboard.compareNoData;
+  }
+
+  return (
+    <View
+      testID="spending-comparison"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.md,
+        padding: spacing.lg,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+      }}>
+      <View style={{ gap: 2, flexShrink: 1 }}>
+        <Text variant="label" color="textMuted" style={{ fontSize: 10, letterSpacing: 1.2 }}>
+          {t.dashboard.compareTitle}
+        </Text>
+        <Text variant="heading">{isBalanceHidden ? MASKED_BALANCE : expense.format()}</Text>
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingHorizontal: spacing.md,
+          paddingVertical: 7,
+          borderRadius: radius.pill,
+          backgroundColor: color + '1F',
+          flexShrink: 1,
+        }}>
+        <Ionicons name={icon} size={15} color={color} />
+        <Text variant="caption" style={{ color, fontWeight: '700', flexShrink: 1 }}>
+          {label}
+        </Text>
+      </View>
+    </View>
   );
 }
 

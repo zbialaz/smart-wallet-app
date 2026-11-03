@@ -6,7 +6,7 @@ import { useCategoryBreakdown, useConsolidatedBalance, useMonthSummary } from '@
 import { useWallet } from '@/store/wallet-store';
 import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
 import { DonutChart } from '@/ui/donut-chart';
-import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
+import { MonthSwitcher, SpendingComparison, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { spacing, useTheme } from '@/ui/theme';
 import { WalletPocket } from '@/ui/wallet-pocket';
@@ -47,6 +47,11 @@ export default function DashboardScreen() {
             expense={summary.expense}
             accounts={accounts}
           />
+        </FadeIn>
+
+        {/* US-015: gasto do mês + comparativo com o mês anterior */}
+        <FadeIn delay={90}>
+          <SpendingComparison expense={summary.expense} />
         </FadeIn>
 
         {/* Divisor Delicado */}

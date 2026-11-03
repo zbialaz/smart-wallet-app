@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { consolidatedBalance } from '@/domains/accounts/account';
 import { buildCategoryBreakdown, summarizeMonth } from '@/domains/dashboard/summary';
+import { compareExpense, type ExpenseComparison } from '@/domains/dashboard/trends';
 
 import { useWallet } from './wallet-store';
 
@@ -41,4 +42,15 @@ export function useCategoryBreakdown() {
 export function useConsolidatedBalance() {
   const accounts = useWallet((s) => s.accounts);
   return useMemo(() => consolidatedBalance(accounts), [accounts]);
+}
+
+/** US-015: gasto do mês selecionado vs. mês anterior (últimos dois itens da janela). */
+export function useExpenseComparison(): ExpenseComparison {
+  const evolution = useWallet((s) => s.monthlyEvolution);
+  return useMemo(() => {
+    if (evolution.length < 2) return { kind: 'no-data' };
+    const current = evolution[evolution.length - 1];
+    const previous = evolution[evolution.length - 2];
+    return compareExpense(current.expense, previous.expense);
+  }, [evolution]);
 }

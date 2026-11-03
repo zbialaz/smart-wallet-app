@@ -25,6 +25,7 @@ import { createUserRepository } from '@/domains/auth/user-repository';
 import type { Category, CategoryDraft, CategoryField } from '@/domains/categories/category';
 import { canModifyCategory, validateCategory } from '@/domains/categories/category';
 import { createCategoryRepository } from '@/domains/categories/category-repository';
+import { buildMonthlyEvolution, type MonthlyTotals } from '@/domains/dashboard/trends';
 import {
   validateTransaction,
   type Transaction,
@@ -32,7 +33,7 @@ import {
   type TransactionField,
 } from '@/domains/transactions/transaction';
 import { createTransactionRepository } from '@/domains/transactions/transaction-repository';
-import { currentYearMonth, today, type YearMonth } from '@/shared/date';
+import { addMonths, currentYearMonth, today, type YearMonth } from '@/shared/date';
 import { useI18nStore, type AppLanguage } from '@/shared/i18n';
 import { generateId, nowISO } from '@/shared/id';
 import { fail, ok, type FieldErrors, type Result } from '@/shared/result';
@@ -48,6 +49,9 @@ import { useThemeStore, type ThemeMode } from '@/ui/theme';
  *
  * As telas NÃO falam com o banco nem conhecem regras: só chamam ações e leem estado.
  */
+
+/** Janela do gráfico de evolução e do comparativo mensal (US-014 / US-015). */
+const EVOLUTION_MONTHS = 6;
 
 type Repositories = {
   users: ReturnType<typeof createUserRepository>;
@@ -70,6 +74,8 @@ interface WalletState {
   categories: Category[];
   /** Transações do mês selecionado. */
   transactions: Transaction[];
+  /** Totais dos últimos 6 meses terminando no mês selecionado (US-014 / US-015). */
+  monthlyEvolution: MonthlyTotals[];
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -125,6 +131,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     accounts: [],
     categories: [],
     transactions: [],
+    monthlyEvolution: [],
 
     async init(db) {
       const repos: Repositories = {
@@ -192,13 +199,15 @@ export const useWallet = create<WalletState>()((set, get) => {
       const categories = await repos.categories.listAll(user?.id);
 
       if (!user) {
-        set({ accounts: [], categories, transactions: [] });
+        set({ accounts: [], categories, transactions: [], monthlyEvolution: [] });
         return;
       }
 
-      const [accountTotals, transactions] = await Promise.all([
+      const month = get().selectedMonth;
+      const [accountTotals, transactions, totalRows] = await Promise.all([
         repos.accounts.listActiveWithTotals(user.id),
-        repos.transactions.listByMonth(get().selectedMonth, user.id),
+        repos.transactions.listByMonth(month, user.id),
+        repos.transactions.monthlyTotals(addMonths(month, -(EVOLUTION_MONTHS - 1)), month, user.id),
       ]);
 
       // RN-05: o saldo é calculado pelo domínio a partir dos totais
@@ -207,15 +216,27 @@ export const useWallet = create<WalletState>()((set, get) => {
         balance: calculateBalance(account.initialBalance, { income, expense }),
       }));
 
-      set({ accounts, categories, transactions });
+      set({
+        accounts,
+        categories,
+        transactions,
+        monthlyEvolution: buildMonthlyEvolution(totalRows, month, EVOLUTION_MONTHS),
+      });
     },
 
     async setMonth(month) {
       set({ selectedMonth: month });
       const user = get().currentUser;
       if (!user) return;
-      const transactions = await requireRepos().transactions.listByMonth(month, user.id);
-      set({ transactions });
+      const repos = requireRepos();
+      const [transactions, totalRows] = await Promise.all([
+        repos.transactions.listByMonth(month, user.id),
+        repos.transactions.monthlyTotals(addMonths(month, -(EVOLUTION_MONTHS - 1)), month, user.id),
+      ]);
+      set({
+        transactions,
+        monthlyEvolution: buildMonthlyEvolution(totalRows, month, EVOLUTION_MONTHS),
+      });
     },
 
     async setThemeMode(mode) {
@@ -389,6 +410,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         currentUser: null,
         accounts: [],
         transactions: [],
+        monthlyEvolution: [],
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
@@ -402,6 +424,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         currentUser: null,
         accounts: [],
         transactions: [],
+        monthlyEvolution: [],
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
