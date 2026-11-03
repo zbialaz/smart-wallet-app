@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'rea
 
 import { suggestCategory } from '@/domains/categories/auto-classify';
 import { categoriesForType } from '@/domains/categories/category';
+import { detectSingleExpenseAlert } from '@/domains/insights/unusual-spending';
 import { DESCRIPTION_MAX_LENGTH, type TransactionField } from '@/domains/transactions/transaction';
 import { addDays, formatDateBR, parseDateBR, today, type ISODate } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
@@ -40,6 +41,7 @@ export default function TransactionFormScreen() {
   const categories = useWallet((s) => s.categories);
   const transactions = useWallet((s) => s.transactions);
   const learnedCategoryRules = useWallet((s) => s.learnedCategoryRules);
+  const categoryMonthlyStats = useWallet((s) => s.categoryMonthlyStats);
   const saveTransaction = useWallet((s) => s.saveTransaction);
   const deleteTransaction = useWallet((s) => s.deleteTransaction);
   const findTransaction = useWallet((s) => s.findTransaction);
@@ -94,6 +96,14 @@ export default function TransactionFormScreen() {
 
   // Mostra a categoria já selecionada mesmo que esteja arquivada (RN-10, na edição)
   const selectedCategory = categories.find((c) => c.id === categoryId);
+  const singleExpenseAlert =
+    type === 'expense'
+      ? detectSingleExpenseAlert({
+          amount,
+          categoryId,
+          stats: categoryMonthlyStats,
+        })
+      : null;
   const categoryChips =
     selectedCategory && !visibleCategories.some((c) => c.id === selectedCategory.id) && selectedCategory.type === type
       ? [selectedCategory, ...visibleCategories]
@@ -174,6 +184,29 @@ export default function TransactionFormScreen() {
 
           <Field label={t.transactions.amountLabel} error={errors.amount}>
             <AmountInput value={amount} onChange={setAmount} accent={accent} autoFocus={!isEditing} invalid={!!errors.amount} />
+            {singleExpenseAlert && selectedCategory && (
+              <View
+                testID="unusual-single-expense-alert"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                  padding: spacing.sm,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: '#D99A2B55',
+                  backgroundColor: '#D99A2B14',
+                }}>
+                <Ionicons name="warning" size={14} color="#D99A2B" />
+                <Text variant="caption" style={{ color: '#D99A2B', flex: 1 }}>
+                  {t.transactions.unusualSingleAlert(
+                    tCategory(selectedCategory.id, selectedCategory.name),
+                    singleExpenseAlert.multiplier,
+                    singleExpenseAlert.averageTxAmount.format(),
+                  )}
+                </Text>
+              </View>
+            )}
           </Field>
 
           <Field label={t.transactions.descriptionLabel} error={errors.description}>

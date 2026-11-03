@@ -32,6 +32,7 @@ import { canModifyCategory, validateCategory } from '@/domains/categories/catego
 import { createCategoryRepository } from '@/domains/categories/category-repository';
 import { buildCategoryBreakdown, type CategorySlice } from '@/domains/dashboard/summary';
 import { buildMonthlyEvolution, type MonthlyTotals } from '@/domains/dashboard/trends';
+import type { CategoryMonthlyStat } from '@/domains/insights/unusual-spending';
 import {
   validateTransaction,
   type Transaction,
@@ -93,6 +94,8 @@ interface WalletState {
   monthlyBudget: Money | null;
   /** US-016.3: preferências de categorização aprendidas com o usuário. */
   learnedCategoryRules: LearnedCategoryRules;
+  /** US-018: estatísticas mensais por categoria (últimos 6 meses) para alertas de gasto incomum. */
+  categoryMonthlyStats: CategoryMonthlyStat[];
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -155,6 +158,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     monthlyEvolution: [],
     monthlyBudget: null,
     learnedCategoryRules: {},
+    categoryMonthlyStats: [],
 
     async init(db) {
       const repos: Repositories = {
@@ -234,19 +238,22 @@ export const useWallet = create<WalletState>()((set, get) => {
       }
 
       const month = get().selectedMonth;
-      const [accountTotals, transactions, totalRows, budgetRow, learnedRow] = await Promise.all([
-        repos.accounts.listActiveWithTotals(user.id),
-        repos.transactions.listByMonth(month, user.id),
-        repos.transactions.monthlyTotals(addMonths(month, -(EVOLUTION_MONTHS - 1)), month, user.id),
-        get().db?.getFirstAsync<{ value: string }>(
-          'SELECT value FROM settings WHERE key = ?',
-          budgetKey(user.id),
-        ),
-        get().db?.getFirstAsync<{ value: string }>(
-          'SELECT value FROM settings WHERE key = ?',
-          learnedRulesKey(user.id),
-        ),
-      ]);
+      const fromMonth = addMonths(month, -(EVOLUTION_MONTHS - 1));
+      const [accountTotals, transactions, totalRows, catStats, budgetRow, learnedRow] =
+        await Promise.all([
+          repos.accounts.listActiveWithTotals(user.id),
+          repos.transactions.listByMonth(month, user.id),
+          repos.transactions.monthlyTotals(fromMonth, month, user.id),
+          repos.transactions.categoryMonthlyStats(fromMonth, month, user.id),
+          get().db?.getFirstAsync<{ value: string }>(
+            'SELECT value FROM settings WHERE key = ?',
+            budgetKey(user.id),
+          ),
+          get().db?.getFirstAsync<{ value: string }>(
+            'SELECT value FROM settings WHERE key = ?',
+            learnedRulesKey(user.id),
+          ),
+        ]);
       const budgetCents = budgetRow ? Number(budgetRow.value) : NaN;
 
       // RN-05: o saldo é calculado pelo domínio a partir dos totais
@@ -260,6 +267,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         categories,
         transactions,
         monthlyEvolution: buildMonthlyEvolution(totalRows, month, EVOLUTION_MONTHS),
+        categoryMonthlyStats: catStats,
         monthlyBudget:
           Number.isSafeInteger(budgetCents) && budgetCents > 0 ? Money.fromCents(budgetCents) : null,
         learnedCategoryRules: parseLearnedRules(learnedRow?.value),
@@ -271,13 +279,16 @@ export const useWallet = create<WalletState>()((set, get) => {
       const user = get().currentUser;
       if (!user) return;
       const repos = requireRepos();
-      const [transactions, totalRows] = await Promise.all([
+      const fromMonth = addMonths(month, -(EVOLUTION_MONTHS - 1));
+      const [transactions, totalRows, catStats] = await Promise.all([
         repos.transactions.listByMonth(month, user.id),
-        repos.transactions.monthlyTotals(addMonths(month, -(EVOLUTION_MONTHS - 1)), month, user.id),
+        repos.transactions.monthlyTotals(fromMonth, month, user.id),
+        repos.transactions.categoryMonthlyStats(fromMonth, month, user.id),
       ]);
       set({
         transactions,
         monthlyEvolution: buildMonthlyEvolution(totalRows, month, EVOLUTION_MONTHS),
+        categoryMonthlyStats: catStats,
       });
     },
 

@@ -8,7 +8,13 @@ import { budgetProgress } from '@/domains/settings/budget';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
-import { useAccountMap, useCategoryMap, useExpenseComparison, useMonthlyInsight } from '@/store/selectors';
+import {
+  useAccountMap,
+  useCategoryMap,
+  useCategoryPaceAlerts,
+  useExpenseComparison,
+  useMonthlyInsight,
+} from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 
 import { IconBadge } from './components';
@@ -339,6 +345,50 @@ export function MonthlyInsightCard() {
       <Text color={insight.kind === 'insufficient_data' ? 'textMuted' : 'text'} style={{ lineHeight: 20 }}>
         {bodyText}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * US-018.1 — Alertas no Dashboard quando uma categoria ultrapassa em ≥ 30%
+ * a média histórica mensal do próprio usuário.
+ */
+export function UnusualSpendingAlerts() {
+  const { colors } = useTheme();
+  const { t, tCategory } = useI18n();
+  const { isBalanceHidden } = usePrivacy();
+  const alerts = useCategoryPaceAlerts();
+
+  if (alerts.length === 0) return null;
+  const show = (m: Money) => (isBalanceHidden ? MASKED_BALANCE : m.format());
+
+  return (
+    <View
+      testID="unusual-spending-alerts"
+      style={{
+        gap: spacing.sm,
+        padding: spacing.lg,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: WARNING_COLOR + '55',
+        backgroundColor: colors.surface,
+      }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        <Ionicons name="warning" size={14} color={WARNING_COLOR} />
+        <Text variant="label" style={{ fontSize: 10, letterSpacing: 1.2, color: WARNING_COLOR }}>
+          {t.dashboard.unusualAlertTitle}
+        </Text>
+      </View>
+      {alerts.slice(0, 2).map((alert) => (
+        <Text key={alert.categoryId} style={{ lineHeight: 20 }}>
+          {t.dashboard.unusualCategoryPace(
+            tCategory(alert.categoryId, alert.categoryName),
+            alert.percentAbove,
+            show(alert.currentAmount),
+            show(alert.averageAmount),
+          )}
+        </Text>
+      ))}
     </View>
   );
 }

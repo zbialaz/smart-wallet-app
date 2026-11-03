@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { MonthlyTotalRow } from '@/domains/dashboard/trends';
+import type { CategoryMonthlyStat } from '@/domains/insights/unusual-spending';
 import { monthRange, type YearMonth } from '@/shared/date';
 import { Money } from '@/shared/money';
 import type { TransactionType } from '@/shared/transaction-type';
@@ -70,6 +71,42 @@ export function createTransactionRepository(db: SQLiteDatabase) {
         end,
       );
       return rows.map((r) => ({ month: r.month, type: r.type, totalCents: r.total }));
+    },
+
+    /**
+     * US-018: totais e quantidade de transações de GASTO por mês e categoria na janela informada.
+     */
+    async categoryMonthlyStats(
+      fromMonth: YearMonth,
+      toMonth: YearMonth,
+      userId: string,
+    ): Promise<CategoryMonthlyStat[]> {
+      const { start } = monthRange(fromMonth);
+      const { end } = monthRange(toMonth);
+      const rows = await db.getAllAsync<{
+        month: string;
+        category_id: string;
+        total: number;
+        tx_count: number;
+      }>(
+        `SELECT substr(t.date, 1, 7) AS month,
+                t.category_id AS category_id,
+                SUM(t.amount_cents) AS total,
+                COUNT(*) AS tx_count
+         FROM transactions t
+         INNER JOIN accounts a ON a.id = t.account_id
+         WHERE a.user_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date < ?
+         GROUP BY month, t.category_id`,
+        userId,
+        start,
+        end,
+      );
+      return rows.map((r) => ({
+        month: r.month as YearMonth,
+        categoryId: r.category_id,
+        totalCents: r.total,
+        txCount: r.tx_count,
+      }));
     },
 
     async findById(id: string): Promise<Transaction | null> {

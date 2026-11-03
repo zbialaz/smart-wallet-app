@@ -14,6 +14,7 @@ import {
   MonthSwitcher,
   SpendingComparison,
   TransactionRow,
+  UnusualSpendingAlerts,
 } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { spacing, useTheme } from '@/ui/theme';
@@ -64,6 +65,8 @@ export default function DashboardScreen() {
           <SpendingComparison expense={summary.expense} />
           {/* US-019: progresso da meta mensal (só aparece se o usuário definiu uma) */}
           {budget && <BudgetProgressCard spent={summary.expense} budget={budget} />}
+          {/* US-018.1: alertas de categorias acima do ritmo normal */}
+          <UnusualSpendingAlerts />
           {/* US-017: resumo mensal inteligente */}
           {transactions.length > 0 && <MonthlyInsightCard />}
         </FadeIn>

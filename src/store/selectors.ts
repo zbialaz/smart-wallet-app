@@ -4,6 +4,10 @@ import { consolidatedBalance } from '@/domains/accounts/account';
 import { buildCategoryBreakdown, summarizeMonth } from '@/domains/dashboard/summary';
 import { compareExpense, type ExpenseComparison } from '@/domains/dashboard/trends';
 import { buildMonthlyInsight, type MonthlyInsight } from '@/domains/insights/monthly-summary';
+import {
+  detectCategoryPaceAlerts,
+  type CategoryPaceAlert,
+} from '@/domains/insights/unusual-spending';
 
 import { useWallet } from './wallet-store';
 
@@ -64,5 +68,16 @@ export function useMonthlyInsight(): MonthlyInsight {
   return useMemo(
     () => buildMonthlyInsight({ transactions, breakdown, comparison }),
     [transactions, breakdown, comparison],
+  );
+}
+
+/** US-018.1: alertas de categorias com gastos muito acima da média histórica (≥ +30%). */
+export function useCategoryPaceAlerts(): CategoryPaceAlert[] {
+  const stats = useWallet((s) => s.categoryMonthlyStats);
+  const currentMonth = useWallet((s) => s.selectedMonth);
+  const categories = useWallet((s) => s.categories);
+  return useMemo(
+    () => detectCategoryPaceAlerts({ stats, currentMonth, categories }),
+    [stats, currentMonth, categories],
   );
 }

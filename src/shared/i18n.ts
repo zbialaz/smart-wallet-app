@@ -119,6 +119,9 @@ const pt = {
         : rate >= 0
           ? `Você poupou ${rate}% da renda; revisar a maior categoria pode aumentar sua margem.`
           : 'Atenção: as saídas superaram as entradas neste mês.',
+    unusualAlertTitle: 'ALERTA DE GASTO INCOMUM',
+    unusualCategoryPace: (category: string, percent: number, current: string, average: string) =>
+      `Atenção: seus gastos com ${category} (${current}) estão ${percent}% acima da sua média mensal (${average}).`,
   },
   wallet: {
     cardBalance: 'SALDO',
@@ -160,6 +163,8 @@ const pt = {
     resultsCount: (count: number) => `${count} ${count === 1 ? 'resultado' : 'resultados'}`,
     autoSuggestedBadge: 'Sugerida automaticamente',
     learnedBadge: 'Aprendida com você',
+    unusualSingleAlert: (category: string, multiplier: number, average: string) =>
+      `Gasto incomum: este valor é ${multiplier}x maior que sua média por lançamento em ${category} (${average}).`,
   },
   accounts: {
     title: 'Contas Bancárias',
@@ -346,6 +351,9 @@ const en: Translations = {
         : rate >= 0
           ? `You saved ${rate}% of your income; trimming your top category can boost your margin.`
           : 'Heads up: expenses exceeded your income this month.',
+    unusualAlertTitle: 'UNUSUAL SPENDING ALERT',
+    unusualCategoryPace: (category: string, percent: number, current: string, average: string) =>
+      `Heads up: your spending on ${category} (${current}) is ${percent}% above your monthly average (${average}).`,
   },
   wallet: {
     cardBalance: 'BALANCE',
@@ -387,6 +395,8 @@ const en: Translations = {
     resultsCount: (count: number) => `${count} ${count === 1 ? 'result' : 'results'}`,
     autoSuggestedBadge: 'Auto-suggested',
     learnedBadge: 'Learned from you',
+    unusualSingleAlert: (category: string, multiplier: number, average: string) =>
+      `Unusual expense: this amount is ${multiplier}x higher than your average transaction in ${category} (${average}).`,
   },
   accounts: {
     title: 'Bank Accounts',
@@ -570,6 +580,9 @@ const es: Translations = {
         : rate >= 0
           ? `Ahorraste el ${rate}% de tus ingresos; revisar tu mayor categoría puede ampliar tu margen.`
           : 'Atención: los gastos superaron a los ingresos este mes.',
+    unusualAlertTitle: 'ALERTA DE GASTO INUSUAL',
+    unusualCategoryPace: (category: string, percent: number, current: string, average: string) =>
+      `Atención: tus gastos en ${category} (${current}) están un ${percent}% por encima de tu promedio mensual (${average}).`,
   },
   wallet: {
     cardBalance: 'SALDO',
@@ -611,6 +624,8 @@ const es: Translations = {
     resultsCount: (count: number) => `${count} ${count === 1 ? 'resultado' : 'resultados'}`,
     autoSuggestedBadge: 'Sugerida automáticamente',
     learnedBadge: 'Aprendida de ti',
+    unusualSingleAlert: (category: string, multiplier: number, average: string) =>
+      `Gasto inusual: este monto es ${multiplier}x mayor que tu promedio por transacción en ${category} (${average}).`,
   },
   accounts: {
     title: 'Cuentas Bancarias',
