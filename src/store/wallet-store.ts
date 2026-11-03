@@ -34,9 +34,11 @@ import {
   type TransactionField,
 } from '@/domains/transactions/transaction';
 import { createTransactionRepository } from '@/domains/transactions/transaction-repository';
+import { validateBudget } from '@/domains/settings/budget';
 import { addMonths, currentYearMonth, today, type YearMonth } from '@/shared/date';
 import { useI18nStore, type AppLanguage } from '@/shared/i18n';
 import { generateId, nowISO } from '@/shared/id';
+import { Money } from '@/shared/money';
 import { fail, ok, type FieldErrors, type Result } from '@/shared/result';
 import { useThemeStore, type ThemeMode } from '@/ui/theme';
 
@@ -53,6 +55,9 @@ import { useThemeStore, type ThemeMode } from '@/ui/theme';
 
 /** Janela do gráfico de evolução e do comparativo mensal (US-014 / US-015). */
 const EVOLUTION_MONTHS = 6;
+
+/** A meta mensal é por usuário: cada um guarda a sua em `settings`. */
+const budgetKey = (userId: string) => `monthly_budget:${userId}`;
 
 type Repositories = {
   users: ReturnType<typeof createUserRepository>;
@@ -77,6 +82,8 @@ interface WalletState {
   transactions: Transaction[];
   /** Totais dos últimos 6 meses terminando no mês selecionado (US-014 / US-015). */
   monthlyEvolution: MonthlyTotals[];
+  /** US-019: meta de gastos mensal do usuário logado (null = sem meta). */
+  monthlyBudget: Money | null;
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -85,6 +92,8 @@ interface WalletState {
   setLanguage(lang: AppLanguage): Promise<void>;
   toggleTheme(currentlyDark: boolean): Promise<void>;
   toggleBalanceHidden(): Promise<void>;
+  /** US-019: define (ou remove, com null) a meta de gastos mensal. */
+  setMonthlyBudget(value: Money | null): Promise<Result<Money | null, string>>;
 
   /** Autenticação e ciclo de vida da conta de usuário */
   registerUser(draft: RegisterDraft): Promise<Result<User, FieldErrors<AuthField>>>;
@@ -135,6 +144,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     categories: [],
     transactions: [],
     monthlyEvolution: [],
+    monthlyBudget: null,
 
     async init(db) {
       const repos: Repositories = {
@@ -202,16 +212,21 @@ export const useWallet = create<WalletState>()((set, get) => {
       const categories = await repos.categories.listAll(user?.id);
 
       if (!user) {
-        set({ accounts: [], categories, transactions: [], monthlyEvolution: [] });
+        set({ accounts: [], categories, transactions: [], monthlyEvolution: [], monthlyBudget: null });
         return;
       }
 
       const month = get().selectedMonth;
-      const [accountTotals, transactions, totalRows] = await Promise.all([
+      const [accountTotals, transactions, totalRows, budgetRow] = await Promise.all([
         repos.accounts.listActiveWithTotals(user.id),
         repos.transactions.listByMonth(month, user.id),
         repos.transactions.monthlyTotals(addMonths(month, -(EVOLUTION_MONTHS - 1)), month, user.id),
+        get().db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          budgetKey(user.id),
+        ),
       ]);
+      const budgetCents = budgetRow ? Number(budgetRow.value) : NaN;
 
       // RN-05: o saldo é calculado pelo domínio a partir dos totais
       const accounts = accountTotals.map(({ account, income, expense }) => ({
@@ -224,6 +239,8 @@ export const useWallet = create<WalletState>()((set, get) => {
         categories,
         transactions,
         monthlyEvolution: buildMonthlyEvolution(totalRows, month, EVOLUTION_MONTHS),
+        monthlyBudget:
+          Number.isSafeInteger(budgetCents) && budgetCents > 0 ? Money.fromCents(budgetCents) : null,
       });
     },
 
@@ -281,6 +298,29 @@ export const useWallet = create<WalletState>()((set, get) => {
           next ? '1' : '0',
         );
       }
+    },
+
+    async setMonthlyBudget(value) {
+      const user = get().currentUser;
+      const db = get().db;
+      if (!user || !db) return fail('Usuário não autenticado');
+
+      if (value === null) {
+        await db.runAsync('DELETE FROM settings WHERE key = ?', budgetKey(user.id));
+        set({ monthlyBudget: null });
+        return ok(null);
+      }
+
+      const validated = validateBudget(value);
+      if (!validated.ok) return validated;
+
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        budgetKey(user.id),
+        String(validated.value.cents),
+      );
+      set({ monthlyBudget: validated.value });
+      return ok(validated.value);
     },
 
     async registerUser(draft) {
@@ -414,6 +454,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         accounts: [],
         transactions: [],
         monthlyEvolution: [],
+        monthlyBudget: null,
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
@@ -428,6 +469,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         accounts: [],
         transactions: [],
         monthlyEvolution: [],
+        monthlyBudget: null,
         categories: get().categories.filter((c) => c.isDefault),
       });
     },

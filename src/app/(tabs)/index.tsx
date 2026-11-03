@@ -8,7 +8,7 @@ import { useWallet } from '@/store/wallet-store';
 import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
 import { DonutChart } from '@/ui/donut-chart';
 import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
-import { MonthSwitcher, SpendingComparison, TransactionRow } from '@/ui/shared-widgets';
+import { BudgetProgressCard, MonthSwitcher, SpendingComparison, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { spacing, useTheme } from '@/ui/theme';
 import { WalletPocket } from '@/ui/wallet-pocket';
@@ -27,6 +27,7 @@ export default function DashboardScreen() {
   const transactions = useWallet((s) => s.transactions);
   const accounts = useWallet((s) => s.accounts);
   const evolution = useWallet((s) => s.monthlyEvolution);
+  const budget = useWallet((s) => s.monthlyBudget);
   const summary = useMonthSummary();
   const slices = useCategoryBreakdown();
   const consolidated = useConsolidatedBalance();
@@ -53,8 +54,10 @@ export default function DashboardScreen() {
         </FadeIn>
 
         {/* US-015: gasto do mês + comparativo com o mês anterior */}
-        <FadeIn delay={90}>
+        <FadeIn delay={90} style={{ gap: spacing.md }}>
           <SpendingComparison expense={summary.expense} />
+          {/* US-019: progresso da meta mensal (só aparece se o usuário definiu uma) */}
+          {budget && <BudgetProgressCard spent={summary.expense} budget={budget} />}
         </FadeIn>
 
         {/* Divisor Delicado */}

@@ -70,3 +70,4 @@ describe('US-005 — busca e filtros', () => {
     expect(result.map((t) => t.id)).not.toContain('4');
   });
 });
+

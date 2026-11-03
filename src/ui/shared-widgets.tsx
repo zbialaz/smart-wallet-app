@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatRelativeDate } from '@/shared/date';
 import { addMonths, currentYearMonth, formatYearMonth, type YearMonth } from '@/shared/date';
+import { budgetProgress } from '@/domains/settings/budget';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
@@ -194,6 +195,75 @@ export function SpendingComparison({ expense }: { expense: Money }) {
         <Ionicons name={icon} size={15} color={color} />
         <Text variant="caption" style={{ color, fontWeight: '700', flexShrink: 1 }}>
           {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/** Amarelo de alerta (a paleta do tema não tem token de "atenção"). */
+const WARNING_COLOR = '#D99A2B';
+
+/**
+ * US-019 — Barra de progresso da meta mensal:
+ * verde (< 80%), amarela (≥ 80%) e vermelha com o valor excedido (> 100%).
+ */
+export function BudgetProgressCard({ spent, budget }: { spent: Money; budget: Money }) {
+  const { colors } = useTheme();
+  const { t } = useI18n();
+  const { isBalanceHidden } = usePrivacy();
+  const progress = budgetProgress(spent, budget);
+
+  const barColor = {
+    ok: colors.income,
+    warning: WARNING_COLOR,
+    exceeded: colors.expense,
+  }[progress.status];
+
+  const show = (m: Money) => (isBalanceHidden ? MASKED_BALANCE : m.format());
+  const fill = `${Math.min(progress.ratio, 1) * 100}%` as `${number}%`;
+
+  return (
+    <View
+      testID="budget-progress"
+      style={{
+        gap: spacing.sm,
+        padding: spacing.lg,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+      }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text variant="label" color="textMuted" style={{ fontSize: 10, letterSpacing: 1.2 }}>
+          {t.dashboard.budgetCardTitle}
+        </Text>
+        <Text variant="bodyStrong" style={{ color: barColor }}>
+          {progress.percent}%
+        </Text>
+      </View>
+
+      <View
+        style={{
+          height: 10,
+          borderRadius: radius.pill,
+          backgroundColor: colors.surfaceRaised,
+          overflow: 'hidden',
+        }}>
+        <View
+          testID={`budget-bar-${progress.status}`}
+          style={{ width: fill, height: '100%', borderRadius: radius.pill, backgroundColor: barColor }}
+        />
+      </View>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+        <Text variant="caption" color="textMuted" style={{ flexShrink: 1 }}>
+          {t.dashboard.budgetSpentOf(show(progress.spent), show(progress.budget))}
+        </Text>
+        <Text variant="caption" style={{ color: barColor, fontWeight: '700' }}>
+          {progress.status === 'exceeded'
+            ? t.dashboard.budgetExceededBy(show(progress.exceededBy))
+            : t.dashboard.budgetRemaining(show(progress.remaining))}
         </Text>
       </View>
     </View>

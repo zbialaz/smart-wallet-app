@@ -154,3 +154,4 @@ export function MonthlyEvolutionChart({ evolution }: { evolution: MonthlyTotals[
     </View>
   );
 }
+

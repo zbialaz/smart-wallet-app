@@ -77,3 +77,4 @@ describe('RN-09 — categorias padrão são protegidas', () => {
     expect(canModifyCategory(custom({ id: 'c1', name: 'Pet' }))).toBe(true);
   });
 });
+

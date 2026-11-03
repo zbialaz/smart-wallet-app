@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { USER_NAME_MAX_LENGTH } from '@/domains/auth/user';
 import { LANGUAGE_OPTIONS, useI18n } from '@/shared/i18n';
+import { Money } from '@/shared/money';
 import { useConsolidatedBalance } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import {
+  AmountInput,
   Button,
   Card,
   Chip,
@@ -76,6 +78,26 @@ export default function SettingsScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(false);
+
+  // US-019: meta mensal (campo local sincronizado com o valor salvo)
+  const monthlyBudget = useWallet((s) => s.monthlyBudget);
+  const setMonthlyBudget = useWallet((s) => s.setMonthlyBudget);
+  const [budgetInput, setBudgetInput] = useState<Money>(monthlyBudget ?? Money.zero());
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setBudgetInput(monthlyBudget ?? Money.zero());
+  }, [monthlyBudget]);
+
+  async function handleSaveBudget() {
+    const res = await setMonthlyBudget(budgetInput);
+    if (!res.ok) setBudgetError(res.error);
+  }
+
+  async function handleRemoveBudget() {
+    setBudgetError(null);
+    await setMonthlyBudget(null);
+  }
 
   async function handleSaveName() {
     setSavingName(true);
@@ -357,7 +379,54 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 5. RESUMO DA CARTEIRA E ATALHOS */}
+        {/* 5. META DE GASTOS MENSAL (US-019) */}
+        <FadeIn delay={150}>
+          <Card style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <IconBadge icon="flag-outline" color={colors.primary} size={38} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">{t.settings.budgetTitle}</Text>
+                <Text variant="caption" color="textMuted">
+                  {monthlyBudget
+                    ? t.settings.budgetCurrent(monthlyBudget.format())
+                    : t.settings.budgetDesc}
+                </Text>
+              </View>
+            </View>
+
+            <Field label={t.settings.budgetNone} error={budgetError ?? undefined}>
+              <AmountInput
+                value={budgetInput}
+                onChange={(v) => {
+                  setBudgetInput(v);
+                  setBudgetError(null);
+                }}
+                accent={colors.primary}
+                invalid={!!budgetError}
+              />
+            </Field>
+
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              {monthlyBudget && (
+                <Button
+                  testID="remove-budget-btn"
+                  label={t.settings.budgetRemove}
+                  variant="secondary"
+                  onPress={handleRemoveBudget}
+                  style={{ flex: 1 }}
+                />
+              )}
+              <Button
+                testID="save-budget-btn"
+                label={t.settings.budgetSave}
+                onPress={handleSaveBudget}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+        </FadeIn>
+
+        {/* 6. RESUMO DA CARTEIRA E ATALHOS */}
         <FadeIn delay={170}>
           <Card style={{ gap: spacing.md }}>
             <Text variant="label" color="textMuted">

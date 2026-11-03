@@ -6,3 +6,4 @@ export function normalizeText(text: string): string {
     .toLowerCase()
     .trim();
 }
+
