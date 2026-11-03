@@ -87,6 +87,14 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id);
     `);
   },
+  // v4 — categorias personalizadas por usuário (US-011 / US-024).
+  // user_id NULL = categoria padrão do app (visível para todos).
+  async (db) => {
+    await db.execAsync(`
+      ALTER TABLE categories ADD COLUMN user_id TEXT REFERENCES users(id);
+      CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id);
+    `);
+  },
 ];
 
 export const DATABASE_NAME = 'smart-wallet.db';

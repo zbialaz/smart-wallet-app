@@ -389,26 +389,32 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </Pressable>
 
-            <View
-              style={[
+            <Pressable
+              testID="manage-categories"
+              onPress={() => router.push('/categories')}
+              style={({ pressed }) => [
                 styles.shortcutRow,
                 {
                   backgroundColor: colors.surfaceRaised,
                   borderColor: colors.border,
+                  opacity: pressed ? 0.8 : 1,
                 },
               ]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                 <Ionicons name="pricetags-outline" size={20} color={colors.primary} />
                 <View>
                   <Text variant="bodyStrong">
-                    {t.settings.activeCategoriesCount(categories.length)}
+                    {t.settings.activeCategoriesCount(
+                      categories.filter((c) => c.archivedAt === null).length,
+                    )}
                   </Text>
                   <Text variant="caption" color="textMuted">
-                    {t.settings.activeCategoriesDesc}
+                    {t.settings.manageCategories}
                   </Text>
                 </View>
               </View>
-            </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </Pressable>
           </Card>
         </FadeIn>
 

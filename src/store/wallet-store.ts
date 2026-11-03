@@ -22,7 +22,8 @@ import {
   type User,
 } from '@/domains/auth/user';
 import { createUserRepository } from '@/domains/auth/user-repository';
-import type { Category } from '@/domains/categories/category';
+import type { Category, CategoryDraft, CategoryField } from '@/domains/categories/category';
+import { canModifyCategory, validateCategory } from '@/domains/categories/category';
 import { createCategoryRepository } from '@/domains/categories/category-repository';
 import {
   validateTransaction,
@@ -89,6 +90,13 @@ interface WalletState {
   /** Contas bancárias e transações */
   createAccount(draft: AccountDraft): Promise<Result<Account, FieldErrors<AccountField>>>;
   deleteBankAccount(accountId: string): Promise<void>;
+  /** Categorias personalizadas — US-011 (criar) e US-024 (editar/arquivar). */
+  saveCategory(
+    draft: CategoryDraft,
+    id?: string,
+  ): Promise<Result<Category, FieldErrors<CategoryField>>>;
+  /** RN-08: sem transações → exclui; com transações → arquiva (preserva o histórico). */
+  removeCategory(id: string): Promise<'deleted' | 'archived' | 'forbidden'>;
   /** Cria (sem id) ou edita (com id) uma transação — US-001, US-002, US-003. */
   saveTransaction(
     draft: TransactionDraft,
@@ -181,7 +189,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     async refresh() {
       const repos = requireRepos();
       const user = get().currentUser;
-      const categories = await repos.categories.listAll();
+      const categories = await repos.categories.listAll(user?.id);
 
       if (!user) {
         set({ accounts: [], categories, transactions: [] });
@@ -377,7 +385,12 @@ export const useWallet = create<WalletState>()((set, get) => {
       if (db) {
         await db.runAsync(`DELETE FROM settings WHERE key = 'current_user_id'`);
       }
-      set({ currentUser: null, accounts: [], transactions: [] });
+      set({
+        currentUser: null,
+        accounts: [],
+        transactions: [],
+        categories: get().categories.filter((c) => c.isDefault),
+      });
     },
 
     async deleteUserAccount() {
@@ -385,7 +398,12 @@ export const useWallet = create<WalletState>()((set, get) => {
       const user = get().currentUser;
       if (!user) return;
       await repos.users.deleteUserAndData(user.id);
-      set({ currentUser: null, accounts: [], transactions: [] });
+      set({
+        currentUser: null,
+        accounts: [],
+        transactions: [],
+        categories: get().categories.filter((c) => c.isDefault),
+      });
     },
 
     async createAccount(draft) {
@@ -414,6 +432,59 @@ export const useWallet = create<WalletState>()((set, get) => {
       if (!user) return;
       await requireRepos().accounts.remove(accountId, user.id);
       await get().refresh();
+    },
+
+    async saveCategory(draft, id) {
+      const user = get().currentUser;
+      if (!user) return fail({ name: 'Faça login antes de criar uma categoria' });
+
+      const repos = requireRepos();
+      const existing = id ? get().categories.find((c) => c.id === id) : undefined;
+      if (id && (!existing || !canModifyCategory(existing))) {
+        // RN-09: categoria padrão (ou inexistente) não pode ser editada
+        return fail({ name: 'Esta categoria não pode ser editada' });
+      }
+
+      const result = validateCategory(draft, get().categories, id);
+      if (!result.ok) return result;
+
+      if (existing) {
+        // O tipo não muda na edição (transações antigas dependem dele — RN-04)
+        await repos.categories.update(existing.id, user.id, {
+          name: result.value.name,
+          icon: result.value.icon,
+          color: result.value.color,
+        });
+        await get().refresh();
+        return ok({ ...existing, ...result.value, type: existing.type });
+      }
+
+      const category: Category = {
+        id: generateId(),
+        ...result.value,
+        isDefault: false,
+        archivedAt: null,
+      };
+      await repos.categories.insert(category, user.id);
+      await get().refresh();
+      return ok(category);
+    },
+
+    async removeCategory(id) {
+      const user = get().currentUser;
+      const category = get().categories.find((c) => c.id === id);
+      if (!user || !category || !canModifyCategory(category)) return 'forbidden';
+
+      const repos = requireRepos();
+      const used = await repos.categories.countTransactions(id);
+      if (used > 0) {
+        await repos.categories.archive(id, user.id, nowISO());
+        await get().refresh();
+        return 'archived';
+      }
+      await repos.categories.remove(id, user.id);
+      await get().refresh();
+      return 'deleted';
     },
 
     async saveTransaction(draft, id) {

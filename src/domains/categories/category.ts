@@ -1,3 +1,5 @@
+import { fail, ok, type FieldErrors, type Result } from '@/shared/result';
+import { normalizeText } from '@/shared/text';
 import type { TransactionType } from '@/shared/transaction-type';
 
 /**
@@ -55,3 +57,76 @@ export const DEFAULT_CATEGORIES: Category[] = (
 export function categoriesForType(categories: Category[], type: TransactionType): Category[] {
   return categories.filter((c) => c.type === type && c.archivedAt === null);
 }
+
+/* ------------------------------------------------------------------------- *
+ * US-011 / US-024 — Categorias personalizadas
+ * ------------------------------------------------------------------------- */
+
+export interface CategoryDraft {
+  name: string;
+  icon: string;
+  color: string;
+  type: TransactionType;
+}
+
+export type CategoryField = 'name' | 'icon' | 'color';
+
+export const CATEGORY_NAME_MAX_LENGTH = 24;
+
+/** Ícones (Ionicons) oferecidos no seletor de nova categoria. */
+export const CATEGORY_ICON_OPTIONS = [
+  'paw', 'airplane', 'barbell', 'cafe', 'beer', 'basket', 'bus', 'build',
+  'bulb', 'camera', 'card', 'color-palette', 'construct', 'flower', 'football',
+  'game-controller', 'heart', 'library', 'musical-notes', 'restaurant', 'rocket',
+  'shirt', 'star', 'storefront', 'ticket', 'wine', 'wallet', 'leaf',
+] as const;
+
+/** Cores oferecidas no seletor de nova categoria. */
+export const CATEGORY_COLOR_OPTIONS = [
+  '#E76F51', '#F4A261', '#E9C46A', '#2A9D8F', '#4CC9F0', '#3A86FF',
+  '#7C5CFF', '#B5179E', '#F72585', '#FF5C7A', '#4ADE80', '#8A90B2',
+] as const;
+
+export const DEFAULT_CATEGORY_ICON = CATEGORY_ICON_OPTIONS[0];
+export const DEFAULT_CATEGORY_COLOR = CATEGORY_COLOR_OPTIONS[0];
+
+/** RN-09: categorias padrão não podem ser editadas nem excluídas/arquivadas. */
+export function canModifyCategory(category: Pick<Category, 'isDefault'>): boolean {
+  return !category.isDefault;
+}
+
+/**
+ * US-011: valida uma categoria nova (ou editada, passando `editingId`).
+ * RN-07: o nome é único dentro do MESMO tipo (ignora maiúsculas e acentos).
+ */
+export function validateCategory(
+  draft: CategoryDraft,
+  existing: Category[],
+  editingId?: string,
+): Result<CategoryDraft, FieldErrors<CategoryField>> {
+  const errors: FieldErrors<CategoryField> = {};
+  const name = draft.name.trim();
+
+  if (!name) {
+    errors.name = 'Informe o nome da categoria';
+  } else if (name.length > CATEGORY_NAME_MAX_LENGTH) {
+    errors.name = `Máximo de ${CATEGORY_NAME_MAX_LENGTH} caracteres`;
+  } else if (
+    existing.some(
+      (c) =>
+        c.id !== editingId &&
+        c.archivedAt === null &&
+        c.type === draft.type &&
+        normalizeText(c.name) === normalizeText(name),
+    )
+  ) {
+    errors.name = 'Já existe uma categoria com esse nome';
+  }
+
+  if (!draft.icon) errors.icon = 'Escolha um ícone';
+  if (!/^#[0-9A-Fa-f]{6}$/.test(draft.color)) errors.color = 'Escolha uma cor';
+
+  if (Object.keys(errors).length > 0) return fail(errors);
+  return ok({ ...draft, name });
+}
+

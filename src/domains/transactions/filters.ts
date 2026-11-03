@@ -1,4 +1,8 @@
+import { normalizeText } from '@/shared/text';
+
 import type { Transaction } from './transaction';
+
+export { normalizeText };
 
 /**
  * US-005 — Buscar e filtrar transações.
@@ -16,15 +20,6 @@ export const EMPTY_FILTERS: TransactionFilters = {
   categoryId: null,
   accountId: null,
 };
-
-/** "  iFood  " / "IFOOD" / "ífood" → "ifood" (sem acento, minúsculo, sem espaços nas pontas). */
-export function normalizeText(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
 
 export function hasActiveFilters(filters: TransactionFilters): boolean {
   return normalizeText(filters.query) !== '' || filters.categoryId !== null || filters.accountId !== null;

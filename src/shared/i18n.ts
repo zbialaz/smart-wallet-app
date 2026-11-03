@@ -43,8 +43,12 @@ export function translateCategory(
 ): string {
   const byId = CATEGORY_TRANSLATIONS[categoryIdOrName];
   if (byId) return byId[lang];
-  const byPtName = Object.values(CATEGORY_TRANSLATIONS).find((entry) => entry.pt === fallbackName);
-  if (byPtName) return byPtName[lang];
+  // Fallback por nome só quando NÃO recebemos um id (categorias personalizadas têm id próprio
+  // e nunca devem ser traduzidas, mesmo que o nome coincida com uma padrão).
+  if (categoryIdOrName === fallbackName) {
+    const byPtName = Object.values(CATEGORY_TRANSLATIONS).find((entry) => entry.pt === fallbackName);
+    if (byPtName) return byPtName[lang];
+  }
   return fallbackName;
 }
 
@@ -139,6 +143,28 @@ const pt = {
     startButton: 'Começar',
     signOut: 'Sair',
   },
+  categories: {
+    title: 'Categorias',
+    subtitle: 'Crie categorias personalizadas para organizar seus gastos e receitas.',
+    customSection: 'PERSONALIZADAS',
+    defaultSection: 'PADRÃO',
+    newCategory: 'Nova categoria',
+    emptyCustom: 'Você ainda não criou categorias personalizadas.',
+    defaultLocked: 'Padrão',
+    formNewTitle: 'Nova categoria',
+    formEditTitle: 'Editar categoria',
+    nameLabel: 'Nome da categoria',
+    namePlaceholder: 'Ex.: Pet, Academia…',
+    typeLabel: 'Tipo',
+    iconLabel: 'Ícone',
+    colorLabel: 'Cor',
+    createSubmit: 'Criar categoria',
+    removeTitle: (name: string) => `Remover ${name}?`,
+    removeMessage:
+      'Se houver transações nesta categoria, ela será arquivada e o histórico preservado. Sem transações, será excluída.',
+    removeConfirm: 'Remover',
+    edit: 'Editar',
+  },
   auth: {
     loginSubtitle: 'Entre na sua conta para acessar suas finanças.',
     registerSubtitle: 'Crie sua conta pessoal para organizar seus bancos e gastos.',
@@ -193,6 +219,7 @@ const pt = {
       `${count} ${count === 1 ? 'conta bancária' : 'contas bancárias'}`,
     activeCategoriesCount: (count: number) => `${count} categorias ativas`,
     activeCategoriesDesc: 'Categorias padrão de receitas e gastos',
+    manageCategories: 'Gerenciar categorias',
     sessionSection: 'SESSÃO E SEGURANÇA DA CONTA',
     signOutBtn: 'Sair da conta (Sign out)',
     deleteAccountBtn: 'Excluir minha conta permanentemente',
@@ -295,6 +322,28 @@ const en: Translations = {
     startButton: 'Get started',
     signOut: 'Sign out',
   },
+  categories: {
+    title: 'Categories',
+    subtitle: 'Create custom categories to organize your expenses and income.',
+    customSection: 'CUSTOM',
+    defaultSection: 'DEFAULT',
+    newCategory: 'New category',
+    emptyCustom: 'You have not created custom categories yet.',
+    defaultLocked: 'Default',
+    formNewTitle: 'New category',
+    formEditTitle: 'Edit category',
+    nameLabel: 'Category name',
+    namePlaceholder: 'E.g.: Pets, Gym…',
+    typeLabel: 'Type',
+    iconLabel: 'Icon',
+    colorLabel: 'Color',
+    createSubmit: 'Create category',
+    removeTitle: (name: string) => `Remove ${name}?`,
+    removeMessage:
+      'If this category has transactions it will be archived and your history preserved. Without transactions it will be deleted.',
+    removeConfirm: 'Remove',
+    edit: 'Edit',
+  },
   auth: {
     loginSubtitle: 'Sign in to your account to access your finances.',
     registerSubtitle: 'Create your personal account to organize your banks and expenses.',
@@ -349,6 +398,7 @@ const en: Translations = {
       `${count} ${count === 1 ? 'bank account' : 'bank accounts'}`,
     activeCategoriesCount: (count: number) => `${count} active categories`,
     activeCategoriesDesc: 'Default income and expense categories',
+    manageCategories: 'Manage categories',
     sessionSection: 'SESSION & ACCOUNT SECURITY',
     signOutBtn: 'Sign out',
     deleteAccountBtn: 'Delete my account permanently',
@@ -450,6 +500,28 @@ const es: Translations = {
     startButton: 'Comenzar',
     signOut: 'Salir',
   },
+  categories: {
+    title: 'Categorías',
+    subtitle: 'Crea categorías personalizadas para organizar tus gastos e ingresos.',
+    customSection: 'PERSONALIZADAS',
+    defaultSection: 'PREDETERMINADAS',
+    newCategory: 'Nueva categoría',
+    emptyCustom: 'Aún no has creado categorías personalizadas.',
+    defaultLocked: 'Predeterminada',
+    formNewTitle: 'Nueva categoría',
+    formEditTitle: 'Editar categoría',
+    nameLabel: 'Nombre de la categoría',
+    namePlaceholder: 'Ej.: Mascotas, Gimnasio…',
+    typeLabel: 'Tipo',
+    iconLabel: 'Icono',
+    colorLabel: 'Color',
+    createSubmit: 'Crear categoría',
+    removeTitle: (name: string) => `¿Eliminar ${name}?`,
+    removeMessage:
+      'Si esta categoría tiene transacciones, se archivará y se conservará el historial. Sin transacciones, se eliminará.',
+    removeConfirm: 'Eliminar',
+    edit: 'Editar',
+  },
   auth: {
     loginSubtitle: 'Inicia sesión en tu cuenta para acceder a tus finanzas.',
     registerSubtitle: 'Crea tu cuenta personal para organizar tus bancos y gastos.',
@@ -504,6 +576,7 @@ const es: Translations = {
       `${count} ${count === 1 ? 'cuenta bancaria' : 'cuentas bancarias'}`,
     activeCategoriesCount: (count: number) => `${count} categorías activas`,
     activeCategoriesDesc: 'Categorías predeterminadas de ingresos y gastos',
+    manageCategories: 'Administrar categorías',
     sessionSection: 'SESIÓN Y SEGURIDAD DE LA CUENTA',
     signOutBtn: 'Cerrar sesión (Sign out)',
     deleteAccountBtn: 'Eliminar mi cuenta permanentemente',
