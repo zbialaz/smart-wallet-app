@@ -116,3 +116,10 @@ export function formatYearMonth(ym: YearMonth, lang: AppLanguage = 'pt'): string
   const months = MONTH_NAMES_BY_LANG[lang] ?? MONTH_NAMES_BY_LANG.pt;
   return `${months[m - 1]} ${y}`;
 }
+
+/** Rótulo curto do mês para eixos de gráfico: "Out" / "Oct" / "Oct". */
+export function formatMonthShort(ym: YearMonth, lang: AppLanguage = 'pt'): string {
+  const [, m] = ym.split('-').map(Number);
+  const months = MONTH_NAMES_BY_LANG[lang] ?? MONTH_NAMES_BY_LANG.pt;
+  return months[m - 1].slice(0, 3);
+}

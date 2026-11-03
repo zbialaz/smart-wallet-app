@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { Money } from '@/shared/money';
 
-import { buildMonthlyEvolution, compareExpense, type MonthlyTotalRow } from './trends';
+import {
+  buildMonthlyEvolution,
+  compareExpense,
+  hasEnoughHistory,
+  isExpenseIncrease,
+  maxExpenseCents,
+  type MonthlyTotalRow,
+} from './trends';
 
 const c = (cents: number) => Money.fromCents(cents);
 
@@ -55,5 +62,38 @@ describe('US-015 — compareExpense', () => {
 
   it('gasto zerado neste mês vira queda de 100%', () => {
     expect(compareExpense(c(0), c(10000))).toEqual({ kind: 'down', percent: 100 });
+  });
+});
+
+describe('US-014 — evolução mensal', () => {
+  const window = (expenses: number[], incomes: number[] = []) =>
+    expenses.map((e, i) => ({
+      month: `2026-0${i + 1}`,
+      expense: c(e),
+      income: c(incomes[i] ?? 0),
+    }));
+
+  it('US-014.1: exige dados de pelo menos 2 meses', () => {
+    expect(hasEnoughHistory(window([0, 0, 0, 0, 0, 5000]))).toBe(false);
+    expect(hasEnoughHistory(window([0, 0, 0, 0, 3000, 5000]))).toBe(true);
+    // mês só com receita também conta como "dado"
+    expect(hasEnoughHistory(window([0, 0, 0, 0, 0, 5000], [0, 0, 0, 0, 9000, 0]))).toBe(true);
+  });
+
+  it('US-014.2: detecta gasto maior que o do mês anterior', () => {
+    const w = window([1000, 2000, 1500]);
+    expect(isExpenseIncrease(w, 1)).toBe(true);
+    expect(isExpenseIncrease(w, 2)).toBe(false);
+  });
+
+  it('primeiro item e índices inválidos nunca são "aumento"', () => {
+    const w = window([1000, 2000]);
+    expect(isExpenseIncrease(w, 0)).toBe(false);
+    expect(isExpenseIncrease(w, 5)).toBe(false);
+  });
+
+  it('maxExpenseCents devolve o maior gasto da janela (0 se vazia)', () => {
+    expect(maxExpenseCents(window([1000, 4000, 2500]))).toBe(4000);
+    expect(maxExpenseCents([])).toBe(0);
   });
 });

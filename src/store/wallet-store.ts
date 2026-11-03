@@ -25,6 +25,7 @@ import { createUserRepository } from '@/domains/auth/user-repository';
 import type { Category, CategoryDraft, CategoryField } from '@/domains/categories/category';
 import { canModifyCategory, validateCategory } from '@/domains/categories/category';
 import { createCategoryRepository } from '@/domains/categories/category-repository';
+import { buildCategoryBreakdown, type CategorySlice } from '@/domains/dashboard/summary';
 import { buildMonthlyEvolution, type MonthlyTotals } from '@/domains/dashboard/trends';
 import {
   validateTransaction,
@@ -110,6 +111,8 @@ interface WalletState {
   ): Promise<Result<Transaction, FieldErrors<TransactionField>>>;
   deleteTransaction(id: string): Promise<void>; // US-004
   findTransaction(id: string): Promise<Transaction | null>;
+  /** US-014.3: detalhamento por categoria dos gastos de um mês específico. */
+  loadMonthBreakdown(month: YearMonth): Promise<CategorySlice[]>;
 }
 
 export const useWallet = create<WalletState>()((set, get) => {
@@ -545,6 +548,13 @@ export const useWallet = create<WalletState>()((set, get) => {
 
     async findTransaction(id) {
       return requireRepos().transactions.findById(id);
+    },
+
+    async loadMonthBreakdown(month) {
+      const user = get().currentUser;
+      if (!user) return [];
+      const transactions = await requireRepos().transactions.listByMonth(month, user.id);
+      return buildCategoryBreakdown(transactions, get().categories);
     },
   };
 });

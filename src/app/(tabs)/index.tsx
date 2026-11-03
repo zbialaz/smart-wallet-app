@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { hasEnoughHistory } from '@/domains/dashboard/trends';
 import { useI18n } from '@/shared/i18n';
 import { useCategoryBreakdown, useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
 import { DonutChart } from '@/ui/donut-chart';
+import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
 import { MonthSwitcher, SpendingComparison, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { spacing, useTheme } from '@/ui/theme';
@@ -24,6 +26,7 @@ export default function DashboardScreen() {
   const setMonth = useWallet((s) => s.setMonth);
   const transactions = useWallet((s) => s.transactions);
   const accounts = useWallet((s) => s.accounts);
+  const evolution = useWallet((s) => s.monthlyEvolution);
   const summary = useMonthSummary();
   const slices = useCategoryBreakdown();
   const consolidated = useConsolidatedBalance();
@@ -76,6 +79,20 @@ export default function DashboardScreen() {
 
         {/* Divisor Delicado */}
         <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
+
+        {/* US-014: evolução dos gastos nos últimos 6 meses (precisa de ≥ 2 meses com dados) */}
+        {hasEnoughHistory(evolution) && (
+          <>
+            <FadeIn delay={150} style={styles.section}>
+              <Text variant="label" color="textMuted" style={styles.sectionTitle}>
+                {t.dashboard.evolutionTitle}
+              </Text>
+              <MonthlyEvolutionChart evolution={evolution} />
+            </FadeIn>
+
+            <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
+          </>
+        )}
 
         {/* Lista de Transações */}
         <FadeIn delay={180} style={styles.section}>

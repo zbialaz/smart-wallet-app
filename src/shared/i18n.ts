@@ -85,6 +85,10 @@ const pt = {
     compareSame: 'Igual ao mês passado',
     compareNoData: 'Sem dados do mês anterior',
     compareTitle: 'GASTOS DO MÊS',
+    evolutionTitle: 'EVOLUÇÃO DE GASTOS',
+    evolutionHint: 'Toque em uma barra para ver o detalhamento por categoria',
+    evolutionNoExpenses: 'Sem gastos neste mês',
+    evolutionTotal: 'Total gasto',
   },
   wallet: {
     cardBalance: 'SALDO',
@@ -270,6 +274,10 @@ const en: Translations = {
     compareSame: 'Same as last month',
     compareNoData: 'No data from last month',
     compareTitle: 'MONTHLY SPENDING',
+    evolutionTitle: 'SPENDING TREND',
+    evolutionHint: 'Tap a bar to see the breakdown by category',
+    evolutionNoExpenses: 'No expenses this month',
+    evolutionTotal: 'Total spent',
   },
   wallet: {
     cardBalance: 'BALANCE',
@@ -452,6 +460,10 @@ const es: Translations = {
     compareSame: 'Igual que el mes pasado',
     compareNoData: 'Sin datos del mes anterior',
     compareTitle: 'GASTOS DEL MES',
+    evolutionTitle: 'EVOLUCIÓN DE GASTOS',
+    evolutionHint: 'Toca una barra para ver el detalle por categoría',
+    evolutionNoExpenses: 'Sin gastos en este mes',
+    evolutionTotal: 'Total gastado',
   },
   wallet: {
     cardBalance: 'SALDO',

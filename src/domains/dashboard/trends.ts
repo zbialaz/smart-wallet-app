@@ -65,3 +65,23 @@ export function compareExpense(current: Money, previous: Money): ExpenseComparis
   if (percent === 0) return { kind: 'same' };
   return diff > 0 ? { kind: 'up', percent } : { kind: 'down', percent };
 }
+
+/**
+ * US-014.1: o gráfico só aparece com dados de pelo menos 2 meses
+ * (meses com qualquer movimentação de receita ou gasto na janela).
+ */
+export function hasEnoughHistory(evolution: MonthlyTotals[], minMonths = 2): boolean {
+  const monthsWithData = evolution.filter((m) => m.expense.isPositive() || m.income.isPositive());
+  return monthsWithData.length >= minMonths;
+}
+
+/** US-014.2: o gasto do mês na posição `index` é maior que o do mês imediatamente anterior? */
+export function isExpenseIncrease(evolution: MonthlyTotals[], index: number): boolean {
+  if (index <= 0 || index >= evolution.length) return false;
+  return evolution[index].expense.cents > evolution[index - 1].expense.cents;
+}
+
+/** Maior gasto da janela (centavos) — base para a altura proporcional das barras. */
+export function maxExpenseCents(evolution: MonthlyTotals[]): number {
+  return evolution.reduce((max, m) => Math.max(max, m.expense.cents), 0);
+}
