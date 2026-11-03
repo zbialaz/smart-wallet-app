@@ -50,7 +50,9 @@ function getCardWidth(totalAccounts: number): number {
 export const MASKED_BALANCE = 'R$ ****';
 
 /**
- * The Folio Wallet Pocket (Cartões 100% Íntegros e Visíveis com Toque Orgânico + Ocultação em Asteriscos)
+ * The Folio Wallet Pocket:
+ * Carteira de couro artesanal com controle de privacidade Inline Limpo
+ * posicionado ao lado do Saldo Consolidado (Lei da Proximidade & Ergonomia Fintech).
  */
 export function WalletPocket({
   consolidated,
@@ -77,13 +79,9 @@ export function WalletPocket({
           resizeMode="cover"
           imageStyle={styles.leatherImage}
           style={styles.leatherBacking}>
-          
           <View style={styles.leatherDarkOverlay} />
 
-          {/* 
-            1. CÂMARA DOS CARTÕES (Com respiro e profundidade)
-            Os cartões mergulham 38px dentro do bolso e ficam 100% visíveis, sem cortes!
-          */}
+          {/* 1. CÂMARA DOS CARTÕES */}
           <View style={styles.chamberWrapper}>
             <ScrollView
               horizontal
@@ -100,10 +98,7 @@ export function WalletPocket({
                       styles.cardRotator,
                       {
                         zIndex: index + 1,
-                        transform: [
-                          { translateY: y },
-                          { rotate: rot },
-                        ],
+                        transform: [{ translateY: y }, { rotate: rot }],
                       },
                     ]}>
                     <Pressable
@@ -116,10 +111,8 @@ export function WalletPocket({
                           transform: [{ scale: pressed ? 0.96 : 1 }],
                         },
                       ]}>
-                      {/* Brilho laminado suave */}
                       <View style={styles.cardSheen} />
 
-                      {/* Cabeçalho do Cartão: Banco + Microchip */}
                       <View style={styles.cardHeaderRow}>
                         <Text
                           variant="caption"
@@ -134,7 +127,6 @@ export function WalletPocket({
                         </View>
                       </View>
 
-                      {/* Saldo da Conta: Visível ou Mascarado com Asteriscos */}
                       <View style={styles.cardBalanceBox}>
                         <Text style={styles.cardBalanceLabel}>{t.wallet.cardBalance}</Text>
                         <Text
@@ -150,7 +142,7 @@ export function WalletPocket({
                 );
               })}
 
-              {/* Botão de adicionar nova conta (slot vago na carteira) */}
+              {/* Slot para adicionar nova conta bancária */}
               <View style={styles.cardRotator}>
                 <Pressable
                   onPress={() => router.push('/account-form')}
@@ -165,73 +157,65 @@ export function WalletPocket({
             </ScrollView>
           </View>
 
-          {/* 
-            2. A LAPELA FRONTAL DE COURO (Boca do Bolso)
-            Sobrepõe os 38px inferiores dos cartões com sombra realista de profundidade.
-          */}
+          {/* 2. LAPELA FRONTAL DE COURO */}
           <View style={styles.frontPocketFlap}>
             <ImageBackground
               source={require('@/assets/textures/leather.jpg')}
               resizeMode="cover"
               imageStyle={styles.frontFlapImage}
               style={styles.frontPocketContent}>
-              
               <View style={styles.frontLeatherOverlay} />
               <View style={styles.stitchLine} />
 
-              {/* Cabeçalho da Carteira + Botão de Ocultar/Mostrar Saldo */}
+              {/* Cabeçalho limpo com gravação da marca */}
               <View style={styles.walletHeader}>
                 <View style={styles.brandEmboss}>
                   <Ionicons name="wallet-outline" size={13} color="#E4D5C7" />
                   <Text style={styles.brandEmbossText}>SMART WALLET</Text>
                 </View>
-
-                <Pressable
-                  testID="toggle-privacy-btn"
-                  onPress={toggleBalanceHidden}
-                  hitSlop={12}
-                  accessibilityRole="button"
-                  accessibilityLabel={isBalanceHidden ? t.wallet.showValues : t.wallet.hideValues}
-                  style={({ pressed }) => [
-                    styles.privacyHeaderBtn,
-                    pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
-                  ]}>
-                  <View style={styles.eyePill}>
-                    <Ionicons
-                      name={isBalanceHidden ? 'eye-off-outline' : 'eye-outline'}
-                      size={13}
-                      color="#EFE3D5"
-                    />
-                    <Text style={styles.eyePillText}>
-                      {isBalanceHidden ? t.wallet.showValues : t.wallet.hideValues}
-                    </Text>
-                  </View>
-
-                  {/* Fecho de pressão em latão */}
-                  <View style={styles.snapButtonOuter}>
-                    <View style={styles.snapButtonBevel}>
-                      <View style={styles.snapButtonCore}>
-                        <View style={styles.snapButtonCenterPin} />
-                      </View>
-                    </View>
-                  </View>
-                </Pressable>
               </View>
 
-              {/* Saldo Consolidado */}
-              <Pressable onPress={toggleBalanceHidden} style={styles.balanceArea}>
+              {/* Saldo Consolidado + Botão Circular Inline Limpo */}
+              <View style={styles.balanceArea}>
                 <Text style={styles.balancePrefix}>{t.wallet.consolidatedBalance}</Text>
-                <Text
-                  variant="display"
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                  style={[
-                    styles.balanceText,
-                    isBalanceHidden && { letterSpacing: 2 },
-                  ]}>
-                  {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
-                </Text>
-              </Pressable>
+
+                <View style={styles.balanceValueRow}>
+                  <Pressable onPress={toggleBalanceHidden} style={{ flexShrink: 1 }}>
+                    <Text
+                      variant="display"
+                      adjustsFontSizeToFit
+                      numberOfLines={1}
+                      style={[
+                        styles.balanceText,
+                        isBalanceHidden && { letterSpacing: 2 },
+                      ]}>
+                      {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    testID="toggle-privacy-btn"
+                    onPress={toggleBalanceHidden}
+                    hitSlop={12}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      isBalanceHidden ? t.wallet.showValues : t.wallet.hideValues
+                    }
+                    style={({ pressed }) => [
+                      styles.inlineEyeCircleBtn,
+                      pressed && {
+                        backgroundColor: 'rgba(255, 255, 255, 0.24)',
+                        transform: [{ scale: 0.92 }],
+                      },
+                    ]}>
+                    <Ionicons
+                      name={isBalanceHidden ? 'eye-off-outline' : 'eye-outline'}
+                      size={19}
+                      color="#FFFDFC"
+                    />
+                  </Pressable>
+                </View>
+              </View>
 
               {/* Entradas e Saídas do Mês */}
               <View style={styles.walletFooter}>
@@ -302,11 +286,9 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 0,
   },
-  cardRotator: {
-    // Permite sombra e rotação sem colidir com overflow
-  },
+  cardRotator: {},
   cardItem: {
-    height: 96, // Altura que permite 34px entrarem no bolso e 62px ficarem visíveis
+    height: 96,
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingTop: 8,
@@ -454,72 +436,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.5,
   },
-  privacyHeaderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  eyePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(20, 9, 3, 0.38)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 227, 213, 0.22)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-  },
-  eyePillText: {
-    color: '#EFE3D5',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  snapButtonOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#7A5528',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#4A3212',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.35,
-        shadowRadius: 3,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-      default: {},
-    }),
-  },
-  snapButtonBevel: {
-    width: 17,
-    height: 17,
-    borderRadius: 8.5,
-    backgroundColor: '#D1A362',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#8A6028',
-  },
-  snapButtonCore: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: '#4D3212',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  snapButtonCenterPin: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#E5BC78',
-  },
   balanceArea: {
     gap: 2,
     paddingVertical: spacing.xs,
@@ -531,11 +447,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.2,
   },
+  balanceValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   balanceText: {
     color: '#FFFDFC',
     fontSize: 36,
     fontWeight: '800',
     letterSpacing: -1,
+  },
+  inlineEyeCircleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   walletFooter: {
     flexDirection: 'row',
