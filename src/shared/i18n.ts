@@ -132,6 +132,8 @@ const pt = {
     noResultsMessage: 'Nenhuma transação combina com os filtros aplicados.',
     clearFilters: 'Limpar filtros',
     resultsCount: (count: number) => `${count} ${count === 1 ? 'resultado' : 'resultados'}`,
+    autoSuggestedBadge: 'Sugerida automaticamente',
+    learnedBadge: 'Aprendida com você',
   },
   accounts: {
     title: 'Contas Bancárias',
@@ -331,6 +333,8 @@ const en: Translations = {
     noResultsMessage: 'No transaction matches the applied filters.',
     clearFilters: 'Clear filters',
     resultsCount: (count: number) => `${count} ${count === 1 ? 'result' : 'results'}`,
+    autoSuggestedBadge: 'Auto-suggested',
+    learnedBadge: 'Learned from you',
   },
   accounts: {
     title: 'Bank Accounts',
@@ -527,6 +531,8 @@ const es: Translations = {
     noResultsMessage: 'Ninguna transacción coincide con los filtros aplicados.',
     clearFilters: 'Limpiar filtros',
     resultsCount: (count: number) => `${count} ${count === 1 ? 'resultado' : 'resultados'}`,
+    autoSuggestedBadge: 'Sugerida automáticamente',
+    learnedBadge: 'Aprendida de ti',
   },
   accounts: {
     title: 'Cuentas Bancarias',

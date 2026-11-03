@@ -23,6 +23,11 @@ import {
 } from '@/domains/auth/user';
 import { createUserRepository } from '@/domains/auth/user-repository';
 import type { Category, CategoryDraft, CategoryField } from '@/domains/categories/category';
+import {
+  learnCategoryRule,
+  parseLearnedRules,
+  type LearnedCategoryRules,
+} from '@/domains/categories/auto-classify';
 import { canModifyCategory, validateCategory } from '@/domains/categories/category';
 import { createCategoryRepository } from '@/domains/categories/category-repository';
 import { buildCategoryBreakdown, type CategorySlice } from '@/domains/dashboard/summary';
@@ -58,6 +63,8 @@ const EVOLUTION_MONTHS = 6;
 
 /** A meta mensal é por usuário: cada um guarda a sua em `settings`. */
 const budgetKey = (userId: string) => `monthly_budget:${userId}`;
+/** Regras aprendidas de categorização automática por usuário (US-016.3). */
+const learnedRulesKey = (userId: string) => `learned_category_rules:${userId}`;
 
 type Repositories = {
   users: ReturnType<typeof createUserRepository>;
@@ -84,6 +91,8 @@ interface WalletState {
   monthlyEvolution: MonthlyTotals[];
   /** US-019: meta de gastos mensal do usuário logado (null = sem meta). */
   monthlyBudget: Money | null;
+  /** US-016.3: preferências de categorização aprendidas com o usuário. */
+  learnedCategoryRules: LearnedCategoryRules;
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -145,6 +154,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     transactions: [],
     monthlyEvolution: [],
     monthlyBudget: null,
+    learnedCategoryRules: {},
 
     async init(db) {
       const repos: Repositories = {
@@ -212,18 +222,29 @@ export const useWallet = create<WalletState>()((set, get) => {
       const categories = await repos.categories.listAll(user?.id);
 
       if (!user) {
-        set({ accounts: [], categories, transactions: [], monthlyEvolution: [], monthlyBudget: null });
+        set({
+          accounts: [],
+          categories,
+          transactions: [],
+          monthlyEvolution: [],
+          monthlyBudget: null,
+          learnedCategoryRules: {},
+        });
         return;
       }
 
       const month = get().selectedMonth;
-      const [accountTotals, transactions, totalRows, budgetRow] = await Promise.all([
+      const [accountTotals, transactions, totalRows, budgetRow, learnedRow] = await Promise.all([
         repos.accounts.listActiveWithTotals(user.id),
         repos.transactions.listByMonth(month, user.id),
         repos.transactions.monthlyTotals(addMonths(month, -(EVOLUTION_MONTHS - 1)), month, user.id),
         get().db?.getFirstAsync<{ value: string }>(
           'SELECT value FROM settings WHERE key = ?',
           budgetKey(user.id),
+        ),
+        get().db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          learnedRulesKey(user.id),
         ),
       ]);
       const budgetCents = budgetRow ? Number(budgetRow.value) : NaN;
@@ -241,6 +262,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         monthlyEvolution: buildMonthlyEvolution(totalRows, month, EVOLUTION_MONTHS),
         monthlyBudget:
           Number.isSafeInteger(budgetCents) && budgetCents > 0 ? Money.fromCents(budgetCents) : null,
+        learnedCategoryRules: parseLearnedRules(learnedRow?.value),
       });
     },
 
@@ -455,6 +477,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         transactions: [],
         monthlyEvolution: [],
         monthlyBudget: null,
+        learnedCategoryRules: {},
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
@@ -470,6 +493,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         transactions: [],
         monthlyEvolution: [],
         monthlyBudget: null,
+        learnedCategoryRules: {},
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
@@ -577,6 +601,26 @@ export const useWallet = create<WalletState>()((set, get) => {
 
       if (original) await repos.transactions.update(transaction);
       else await repos.transactions.insert(transaction);
+
+      // US-016.3: aprende a associação descrição → categoria escolhida pelo usuário
+      const user = get().currentUser;
+      const db = get().db;
+      if (user && db && transaction.description) {
+        const currentRules = get().learnedCategoryRules;
+        const nextRules = learnCategoryRule(
+          currentRules,
+          transaction.description,
+          transaction.type,
+          transaction.categoryId,
+        );
+        if (nextRules !== currentRules) {
+          await db.runAsync(
+            'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+            learnedRulesKey(user.id),
+            JSON.stringify(nextRules),
+          );
+        }
+      }
 
       // Não há saldo para "recalcular" (RN-05): basta recarregar.
       await get().refresh();

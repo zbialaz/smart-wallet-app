@@ -78,6 +78,7 @@ export function createUserRepository(db: SQLiteDatabase) {
         await db.runAsync('DELETE FROM categories WHERE user_id = ?', userId);
         await db.runAsync('DELETE FROM users WHERE id = ?', userId);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `monthly_budget:${userId}`);
+        await db.runAsync('DELETE FROM settings WHERE key = ?', `learned_category_rules:${userId}`);
         await db.runAsync(`DELETE FROM settings WHERE key = 'current_user_id'`);
       });
     },

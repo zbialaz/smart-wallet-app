@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 
+import { suggestCategory } from '@/domains/categories/auto-classify';
 import { categoriesForType } from '@/domains/categories/category';
 import { DESCRIPTION_MAX_LENGTH, type TransactionField } from '@/domains/transactions/transaction';
 import { addDays, formatDateBR, parseDateBR, today, type ISODate } from '@/shared/date';
@@ -36,6 +38,8 @@ export default function TransactionFormScreen() {
 
   const accounts = useWallet((s) => s.accounts);
   const categories = useWallet((s) => s.categories);
+  const transactions = useWallet((s) => s.transactions);
+  const learnedCategoryRules = useWallet((s) => s.learnedCategoryRules);
   const saveTransaction = useWallet((s) => s.saveTransaction);
   const deleteTransaction = useWallet((s) => s.deleteTransaction);
   const findTransaction = useWallet((s) => s.findTransaction);
@@ -44,6 +48,7 @@ export default function TransactionFormScreen() {
   const [amount, setAmount] = useState(Money.zero());
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [manualCategory, setManualCategory] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(accounts.length === 1 ? accounts[0].id : null);
   const [dateText, setDateText] = useState(formatDateBR(today()));
   const [errors, setErrors] = useState<FieldErrors<TransactionField>>({});
@@ -70,6 +75,22 @@ export default function TransactionFormScreen() {
   const accent = accentFor(type);
   const visibleCategories = categoriesForType(categories, type);
   const parsedDate = parseDateBR(dateText);
+  const suggestion = suggestCategory({
+    description,
+    type,
+    categories,
+    learnedRules: learnedCategoryRules,
+    history: transactions,
+  });
+
+  // US-016: sugere e pré-seleciona automaticamente a categoria ao digitar a descrição
+  // (a menos que o usuário já tenha escolhido uma categoria manualmente ou esteja editando).
+  useEffect(() => {
+    if (isEditing || manualCategory) return;
+    if (suggestion) {
+      setCategoryId(suggestion.categoryId);
+    }
+  }, [suggestion?.categoryId, isEditing, manualCategory]);
 
   // Mostra a categoria já selecionada mesmo que esteja arquivada (RN-10, na edição)
   const selectedCategory = categories.find((c) => c.id === categoryId);
@@ -82,6 +103,7 @@ export default function TransactionFormScreen() {
     if (next === type) return;
     setType(next);
     setCategoryId(null); // RN-04: a categoria precisa ser do mesmo tipo
+    setManualCategory(false);
     setErrors({});
   }
 
@@ -165,6 +187,27 @@ export default function TransactionFormScreen() {
           </Field>
 
           <Field label={t.transactions.categoryLabel} error={errors.categoryId}>
+            {suggestion && categoryId === suggestion.categoryId && (
+              <View
+                testID="category-suggestion-badge"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  alignSelf: 'flex-start',
+                  gap: spacing.xs,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: 3,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.primary + '1A',
+                }}>
+                <Ionicons name="sparkles" size={12} color={colors.primary} />
+                <Text variant="caption" style={{ color: colors.primary }}>
+                  {suggestion.source === 'learned'
+                    ? t.transactions.learnedBadge
+                    : t.transactions.autoSuggestedBadge}
+                </Text>
+              </View>
+            )}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               {categoryChips.map((c) => (
                 <Chip
@@ -173,7 +216,10 @@ export default function TransactionFormScreen() {
                   icon={c.icon as never}
                   color={c.color}
                   selected={categoryId === c.id}
-                  onPress={() => setCategoryId(c.id)}
+                  onPress={() => {
+                    setManualCategory(true);
+                    setCategoryId(c.id);
+                  }}
                 />
               ))}
             </View>
