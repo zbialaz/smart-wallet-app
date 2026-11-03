@@ -93,6 +93,32 @@ const pt = {
     budgetSpentOf: (spent: string, budget: string) => `${spent} de ${budget}`,
     budgetRemaining: (value: string) => `Restam ${value}`,
     budgetExceededBy: (value: string) => `Excedeu em ${value}`,
+    insightTitle: 'RESUMO INTELIGENTE',
+    insightNeedMoreData: (current: number, required: number) =>
+      `Registre pelo menos ${required} transações neste mês (atual: ${current}) para desbloquear a análise inteligente dos seus gastos.`,
+    insightNoExpenses: (income: string) =>
+      `Você registrou ${income} em entradas e nenhum gasto neste mês. Excelente preservação de caixa!`,
+    insightBody: (params: {
+      name: string;
+      monthLabel: string;
+      totalExpense: string;
+      topCategory: string;
+      topPercentage: number;
+      trendSentence: string;
+      tipSentence: string;
+    }) =>
+      `${params.name}, em ${params.monthLabel} você gastou ${params.totalExpense}. ${params.topCategory} foi sua maior categoria (${params.topPercentage}%). ${params.trendSentence} ${params.tipSentence}`.trim(),
+    insightTrendUp: (percent: number) =>
+      `Seus gastos subiram ${percent}% em relação ao mês passado.`,
+    insightTrendDown: (percent: number) =>
+      `Você reduziu seus gastos em ${percent}% em relação ao mês passado!`,
+    insightTrendSame: 'Seus gastos ficaram estáveis em relação ao mês passado.',
+    insightTipSavings: (rate: number) =>
+      rate >= 20
+        ? `Você economizou ${rate}% da sua renda neste mês — ótimo ritmo!`
+        : rate >= 0
+          ? `Você poupou ${rate}% da renda; revisar a maior categoria pode aumentar sua margem.`
+          : 'Atenção: as saídas superaram as entradas neste mês.',
   },
   wallet: {
     cardBalance: 'SALDO',
@@ -294,6 +320,32 @@ const en: Translations = {
     budgetSpentOf: (spent: string, budget: string) => `${spent} of ${budget}`,
     budgetRemaining: (value: string) => `${value} left`,
     budgetExceededBy: (value: string) => `Over by ${value}`,
+    insightTitle: 'SMART SUMMARY',
+    insightNeedMoreData: (current: number, required: number) =>
+      `Record at least ${required} transactions this month (current: ${current}) to unlock your smart spending analysis.`,
+    insightNoExpenses: (income: string) =>
+      `You recorded ${income} in income and zero expenses this month. Great cash preservation!`,
+    insightBody: (params: {
+      name: string;
+      monthLabel: string;
+      totalExpense: string;
+      topCategory: string;
+      topPercentage: number;
+      trendSentence: string;
+      tipSentence: string;
+    }) =>
+      `${params.name}, in ${params.monthLabel} you spent ${params.totalExpense}. ${params.topCategory} was your top category (${params.topPercentage}%). ${params.trendSentence} ${params.tipSentence}`.trim(),
+    insightTrendUp: (percent: number) =>
+      `Your spending increased by ${percent}% compared to last month.`,
+    insightTrendDown: (percent: number) =>
+      `You cut your spending by ${percent}% compared to last month!`,
+    insightTrendSame: 'Your spending stayed steady compared to last month.',
+    insightTipSavings: (rate: number) =>
+      rate >= 20
+        ? `You saved ${rate}% of your income this month — great pace!`
+        : rate >= 0
+          ? `You saved ${rate}% of your income; trimming your top category can boost your margin.`
+          : 'Heads up: expenses exceeded your income this month.',
   },
   wallet: {
     cardBalance: 'BALANCE',
@@ -492,6 +544,32 @@ const es: Translations = {
     budgetSpentOf: (spent: string, budget: string) => `${spent} de ${budget}`,
     budgetRemaining: (value: string) => `Quedan ${value}`,
     budgetExceededBy: (value: string) => `Excedido en ${value}`,
+    insightTitle: 'RESUMEN INTELIGENTE',
+    insightNeedMoreData: (current: number, required: number) =>
+      `Registra al menos ${required} transacciones este mes (actual: ${current}) para desbloquear el análisis inteligente de tus gastos.`,
+    insightNoExpenses: (income: string) =>
+      `Registraste ${income} en ingresos y ningún gasto este mes. ¡Excelente preservación de efectivo!`,
+    insightBody: (params: {
+      name: string;
+      monthLabel: string;
+      totalExpense: string;
+      topCategory: string;
+      topPercentage: number;
+      trendSentence: string;
+      tipSentence: string;
+    }) =>
+      `${params.name}, en ${params.monthLabel} gastaste ${params.totalExpense}. ${params.topCategory} fue tu mayor categoría (${params.topPercentage}%). ${params.trendSentence} ${params.tipSentence}`.trim(),
+    insightTrendUp: (percent: number) =>
+      `Tus gastos subieron un ${percent}% respecto al mes pasado.`,
+    insightTrendDown: (percent: number) =>
+      `¡Redujiste tus gastos un ${percent}% respecto al mes pasado!`,
+    insightTrendSame: 'Tus gastos se mantuvieron estables respecto al mes pasado.',
+    insightTipSavings: (rate: number) =>
+      rate >= 20
+        ? `Ahorraste el ${rate}% de tus ingresos este mes — ¡excelente ritmo!`
+        : rate >= 0
+          ? `Ahorraste el ${rate}% de tus ingresos; revisar tu mayor categoría puede ampliar tu margen.`
+          : 'Atención: los gastos superaron a los ingresos este mes.',
   },
   wallet: {
     cardBalance: 'SALDO',

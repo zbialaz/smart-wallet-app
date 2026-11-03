@@ -8,7 +8,13 @@ import { useWallet } from '@/store/wallet-store';
 import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
 import { DonutChart } from '@/ui/donut-chart';
 import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
-import { BudgetProgressCard, MonthSwitcher, SpendingComparison, TransactionRow } from '@/ui/shared-widgets';
+import {
+  BudgetProgressCard,
+  MonthlyInsightCard,
+  MonthSwitcher,
+  SpendingComparison,
+  TransactionRow,
+} from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { spacing, useTheme } from '@/ui/theme';
 import { WalletPocket } from '@/ui/wallet-pocket';
@@ -58,6 +64,8 @@ export default function DashboardScreen() {
           <SpendingComparison expense={summary.expense} />
           {/* US-019: progresso da meta mensal (só aparece se o usuário definiu uma) */}
           {budget && <BudgetProgressCard spent={summary.expense} budget={budget} />}
+          {/* US-017: resumo mensal inteligente */}
+          {transactions.length > 0 && <MonthlyInsightCard />}
         </FadeIn>
 
         {/* Divisor Delicado */}

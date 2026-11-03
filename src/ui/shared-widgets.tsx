@@ -8,7 +8,8 @@ import { budgetProgress } from '@/domains/settings/budget';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
-import { useAccountMap, useCategoryMap, useExpenseComparison } from '@/store/selectors';
+import { useAccountMap, useCategoryMap, useExpenseComparison, useMonthlyInsight } from '@/store/selectors';
+import { useWallet } from '@/store/wallet-store';
 
 import { IconBadge } from './components';
 import { Text } from './text';
@@ -266,6 +267,78 @@ export function BudgetProgressCard({ spent, budget }: { spent: Money; budget: Mo
             : t.dashboard.budgetRemaining(show(progress.remaining))}
         </Text>
       </View>
+    </View>
+  );
+}
+
+/**
+ * US-017 — Card de resumo mensal inteligente (IA determinística).
+ * Exibe análise em linguagem natural quando há ≥ 5 transações no mês,
+ * ou avisa quantas transações faltam para desbloquear.
+ */
+export function MonthlyInsightCard() {
+  const { colors } = useTheme();
+  const { language, t, tCategory } = useI18n();
+  const { isBalanceHidden } = usePrivacy();
+  const insight = useMonthlyInsight();
+  const currentUser = useWallet((s) => s.currentUser);
+  const selectedMonth = useWallet((s) => s.selectedMonth);
+
+  const firstName = currentUser?.name?.trim().split(/\s+/)[0] || t.onboarding.defaultUser;
+  const monthLabel = formatYearMonth(selectedMonth, language).toLowerCase();
+  const show = (m: Money) => (isBalanceHidden ? MASKED_BALANCE : m.format());
+
+  let bodyText: string;
+  if (insight.kind === 'insufficient_data') {
+    bodyText = t.dashboard.insightNeedMoreData(insight.transactionCount, insight.requiredCount);
+  } else if (insight.kind === 'no_expenses') {
+    bodyText = t.dashboard.insightNoExpenses(show(insight.totalIncome));
+  } else {
+    const topCategoryLabel = tCategory(insight.topCategory.categoryId, insight.topCategory.name);
+    let trendSentence = '';
+    if (insight.comparison.kind === 'up') {
+      trendSentence = t.dashboard.insightTrendUp(insight.comparison.percent);
+    } else if (insight.comparison.kind === 'down') {
+      trendSentence = t.dashboard.insightTrendDown(insight.comparison.percent);
+    } else if (insight.comparison.kind === 'same') {
+      trendSentence = t.dashboard.insightTrendSame;
+    }
+    const tipSentence =
+      insight.savingsRatePercent !== null
+        ? t.dashboard.insightTipSavings(insight.savingsRatePercent)
+        : '';
+
+    bodyText = t.dashboard.insightBody({
+      name: firstName,
+      monthLabel,
+      totalExpense: show(insight.totalExpense),
+      topCategory: topCategoryLabel,
+      topPercentage: insight.topCategory.percentage,
+      trendSentence,
+      tipSentence,
+    });
+  }
+
+  return (
+    <View
+      testID="monthly-insight-card"
+      style={{
+        gap: spacing.sm,
+        padding: spacing.lg,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.primary + '38',
+        backgroundColor: colors.surface,
+      }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        <Ionicons name="sparkles" size={14} color={colors.primary} />
+        <Text variant="label" style={{ fontSize: 10, letterSpacing: 1.2, color: colors.primary }}>
+          {t.dashboard.insightTitle}
+        </Text>
+      </View>
+      <Text color={insight.kind === 'insufficient_data' ? 'textMuted' : 'text'} style={{ lineHeight: 20 }}>
+        {bodyText}
+      </Text>
     </View>
   );
 }

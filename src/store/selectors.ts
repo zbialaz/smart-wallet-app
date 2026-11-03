@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { consolidatedBalance } from '@/domains/accounts/account';
 import { buildCategoryBreakdown, summarizeMonth } from '@/domains/dashboard/summary';
 import { compareExpense, type ExpenseComparison } from '@/domains/dashboard/trends';
+import { buildMonthlyInsight, type MonthlyInsight } from '@/domains/insights/monthly-summary';
 
 import { useWallet } from './wallet-store';
 
@@ -53,4 +54,15 @@ export function useExpenseComparison(): ExpenseComparison {
     const previous = evolution[evolution.length - 2];
     return compareExpense(current.expense, previous.expense);
   }, [evolution]);
+}
+
+/** US-017: resumo mensal inteligente com base nas transações, categorias e variação do mês. */
+export function useMonthlyInsight(): MonthlyInsight {
+  const transactions = useWallet((s) => s.transactions);
+  const breakdown = useCategoryBreakdown();
+  const comparison = useExpenseComparison();
+  return useMemo(
+    () => buildMonthlyInsight({ transactions, breakdown, comparison }),
+    [transactions, breakdown, comparison],
+  );
 }
