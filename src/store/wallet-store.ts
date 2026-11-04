@@ -9,6 +9,12 @@ import {
   type AccountField,
   type AccountWithBalance,
 } from '@/domains/accounts/account';
+import {
+  buildTransferTransactions,
+  validateTransfer,
+  type TransferDraft,
+  type TransferField,
+} from '@/domains/accounts/transfer';
 import { createAccountRepository } from '@/domains/accounts/account-repository';
 import {
   hashPassword,
@@ -118,6 +124,10 @@ interface WalletState {
   /** Contas bancárias e transações */
   createAccount(draft: AccountDraft): Promise<Result<Account, FieldErrors<AccountField>>>;
   deleteBankAccount(accountId: string): Promise<void>;
+  /** US-009: transfere saldo entre duas contas do usuário. */
+  transferBetweenAccounts(
+    draft: TransferDraft,
+  ): Promise<Result<{ outflow: Transaction; inflow: Transaction }, FieldErrors<TransferField>>>;
   /** Categorias personalizadas — US-011 (criar) e US-024 (editar/arquivar). */
   saveCategory(
     draft: CategoryDraft,
@@ -535,6 +545,35 @@ export const useWallet = create<WalletState>()((set, get) => {
       if (!user) return;
       await requireRepos().accounts.remove(accountId, user.id);
       await get().refresh();
+    },
+
+    async transferBetweenAccounts(draft) {
+      const repos = requireRepos();
+      const validated = validateTransfer(draft, {
+        accounts: get().accounts,
+        today: today(),
+      });
+      if (!validated.ok) return validated;
+
+      const pair = buildTransferTransactions(validated.value, {
+        outflowId: generateId(),
+        inflowId: generateId(),
+        now: nowISO(),
+      });
+
+      const db = get().db;
+      if (db) {
+        await db.withTransactionAsync(async () => {
+          await repos.transactions.insert(pair.outflow);
+          await repos.transactions.insert(pair.inflow);
+        });
+      } else {
+        await repos.transactions.insert(pair.outflow);
+        await repos.transactions.insert(pair.inflow);
+      }
+
+      await get().refresh();
+      return ok(pair);
     },
 
     async saveCategory(draft, id) {

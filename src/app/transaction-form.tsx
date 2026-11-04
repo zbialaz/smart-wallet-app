@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 
+import type { TransferField } from '@/domains/accounts/transfer';
 import { suggestCategory } from '@/domains/categories/auto-classify';
 import { categoriesForType } from '@/domains/categories/category';
 import { detectSingleExpenseAlert } from '@/domains/insights/unusual-spending';
@@ -34,7 +35,7 @@ export default function TransactionFormScreen() {
   const router = useRouter();
   const { colors, accentFor } = useTheme();
   const { t, tCategory } = useI18n();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, mode } = useLocalSearchParams<{ id?: string; mode?: string }>();
   const isEditing = !!id;
 
   const accounts = useWallet((s) => s.accounts);
@@ -43,17 +44,20 @@ export default function TransactionFormScreen() {
   const learnedCategoryRules = useWallet((s) => s.learnedCategoryRules);
   const categoryMonthlyStats = useWallet((s) => s.categoryMonthlyStats);
   const saveTransaction = useWallet((s) => s.saveTransaction);
+  const transferBetweenAccounts = useWallet((s) => s.transferBetweenAccounts);
   const deleteTransaction = useWallet((s) => s.deleteTransaction);
   const findTransaction = useWallet((s) => s.findTransaction);
 
   const [type, setType] = useState<TransactionType>('expense');
+  const [isTransfer, setIsTransfer] = useState(!isEditing && mode === 'transfer');
   const [amount, setAmount] = useState(Money.zero());
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [manualCategory, setManualCategory] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(accounts.length === 1 ? accounts[0].id : null);
+  const [toAccountId, setToAccountId] = useState<string | null>(null);
   const [dateText, setDateText] = useState(formatDateBR(today()));
-  const [errors, setErrors] = useState<FieldErrors<TransactionField>>({});
+  const [errors, setErrors] = useState<FieldErrors<TransactionField | TransferField>>({});
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [loaded, setLoaded] = useState(!isEditing);
@@ -74,16 +78,18 @@ export default function TransactionFormScreen() {
     });
   }, [id, findTransaction]);
 
-  const accent = accentFor(type);
+  const accent = isTransfer ? colors.primary : accentFor(type);
   const visibleCategories = categoriesForType(categories, type);
   const parsedDate = parseDateBR(dateText);
-  const suggestion = suggestCategory({
-    description,
-    type,
-    categories,
-    learnedRules: learnedCategoryRules,
-    history: transactions,
-  });
+  const suggestion = isTransfer
+    ? null
+    : suggestCategory({
+        description,
+        type,
+        categories,
+        learnedRules: learnedCategoryRules,
+        history: transactions,
+      });
 
   // US-016: sugere e pré-seleciona automaticamente a categoria ao digitar a descrição
   // (a menos que o usuário já tenha escolhido uma categoria manualmente ou esteja editando).
@@ -110,15 +116,39 @@ export default function TransactionFormScreen() {
       : visibleCategories;
 
   function changeType(next: TransactionType) {
-    if (next === type) return;
+    if (!isTransfer && next === type) return;
+    setIsTransfer(false);
     setType(next);
     setCategoryId(null); // RN-04: a categoria precisa ser do mesmo tipo
     setManualCategory(false);
     setErrors({});
   }
 
+  function selectTransferMode() {
+    if (isTransfer) return;
+    setIsTransfer(true);
+    setErrors({});
+  }
+
   async function onSave() {
     setSaving(true);
+    if (isTransfer) {
+      const transferResult = await transferBetweenAccounts({
+        amount,
+        fromAccountId: accountId,
+        toAccountId,
+        date: (parsedDate ?? '') as ISODate,
+        description,
+      });
+      setSaving(false);
+      if (!transferResult.ok) {
+        setErrors(transferResult.error);
+        return;
+      }
+      router.back();
+      return;
+    }
+
     const result = await saveTransaction(
       {
         type,
@@ -161,25 +191,44 @@ export default function TransactionFormScreen() {
             </Pressable>
           </View>
 
-          {/* Gasto / Receita — o destaque muda de cor (US-002.1) */}
+          {/* Gasto / Receita / Transferência (US-002.1 e US-009) */}
           <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md, padding: 4 }}>
-            {(['expense', 'income'] as const).map((txType) => (
+            {(['expense', 'income'] as const).map((txType) => {
+              const selected = !isTransfer && type === txType;
+              return (
+                <Pressable
+                  key={txType}
+                  testID={`type-${txType}`}
+                  onPress={() => changeType(txType)}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.sm,
+                    backgroundColor: selected ? accentFor(txType) + '2B' : 'transparent',
+                  }}>
+                  <Text variant="bodyStrong" style={{ color: selected ? accentFor(txType) : colors.textMuted }}>
+                    {txType === 'expense' ? t.transactions.expense : t.transactions.income}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {!isEditing && accounts.length >= 2 && (
               <Pressable
-                key={txType}
-                testID={`type-${txType}`}
-                onPress={() => changeType(txType)}
+                testID="type-transfer"
+                onPress={selectTransferMode}
                 style={{
                   flex: 1,
                   alignItems: 'center',
                   paddingVertical: spacing.md,
                   borderRadius: radius.sm,
-                  backgroundColor: type === txType ? accentFor(txType) + '2B' : 'transparent',
+                  backgroundColor: isTransfer ? colors.primary + '2B' : 'transparent',
                 }}>
-                <Text variant="bodyStrong" style={{ color: type === txType ? accentFor(txType) : colors.textMuted }}>
-                  {txType === 'expense' ? t.transactions.expense : t.transactions.income}
+                <Text variant="bodyStrong" style={{ color: isTransfer ? colors.primary : colors.textMuted }}>
+                  {t.transactions.transfer}
                 </Text>
               </Pressable>
-            ))}
+            )}
           </View>
 
           <Field label={t.transactions.amountLabel} error={errors.amount}>
@@ -219,52 +268,88 @@ export default function TransactionFormScreen() {
             />
           </Field>
 
-          <Field label={t.transactions.categoryLabel} error={errors.categoryId}>
-            {suggestion && categoryId === suggestion.categoryId && (
-              <View
-                testID="category-suggestion-badge"
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  alignSelf: 'flex-start',
-                  gap: spacing.xs,
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: 3,
-                  borderRadius: radius.pill,
-                  backgroundColor: colors.primary + '1A',
-                }}>
-                <Ionicons name="sparkles" size={12} color={colors.primary} />
-                <Text variant="caption" style={{ color: colors.primary }}>
-                  {suggestion.source === 'learned'
-                    ? t.transactions.learnedBadge
-                    : t.transactions.autoSuggestedBadge}
-                </Text>
-              </View>
-            )}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-              {categoryChips.map((c) => (
-                <Chip
-                  key={c.id}
-                  label={tCategory(c.id, c.name)}
-                  icon={c.icon as never}
-                  color={c.color}
-                  selected={categoryId === c.id}
-                  onPress={() => {
-                    setManualCategory(true);
-                    setCategoryId(c.id);
-                  }}
-                />
-              ))}
-            </View>
-          </Field>
+          {isTransfer ? (
+            <>
+              <Field label={t.transactions.fromAccountLabel} error={errors.fromAccountId}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {accounts.map((a) => (
+                    <Chip
+                      key={a.id}
+                      label={a.name}
+                      icon="business"
+                      color={a.color}
+                      selected={accountId === a.id}
+                      onPress={() => setAccountId(a.id)}
+                    />
+                  ))}
+                </View>
+              </Field>
 
-          <Field label={t.transactions.accountLabel} error={errors.accountId}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-              {accounts.map((a) => (
-                <Chip key={a.id} label={a.name} icon="business" color={a.color} selected={accountId === a.id} onPress={() => setAccountId(a.id)} />
-              ))}
-            </View>
-          </Field>
+              <Field label={t.transactions.toAccountLabel} error={errors.toAccountId}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {accounts.map((a) => (
+                    <Chip
+                      key={a.id}
+                      label={a.name}
+                      icon="business"
+                      color={a.color}
+                      selected={toAccountId === a.id}
+                      onPress={() => setToAccountId(a.id)}
+                    />
+                  ))}
+                </View>
+              </Field>
+            </>
+          ) : (
+            <>
+              <Field label={t.transactions.categoryLabel} error={errors.categoryId}>
+                {suggestion && categoryId === suggestion.categoryId && (
+                  <View
+                    testID="category-suggestion-badge"
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      alignSelf: 'flex-start',
+                      gap: spacing.xs,
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: 3,
+                      borderRadius: radius.pill,
+                      backgroundColor: colors.primary + '1A',
+                    }}>
+                    <Ionicons name="sparkles" size={12} color={colors.primary} />
+                    <Text variant="caption" style={{ color: colors.primary }}>
+                      {suggestion.source === 'learned'
+                        ? t.transactions.learnedBadge
+                        : t.transactions.autoSuggestedBadge}
+                    </Text>
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {categoryChips.map((c) => (
+                    <Chip
+                      key={c.id}
+                      label={tCategory(c.id, c.name)}
+                      icon={c.icon as never}
+                      color={c.color}
+                      selected={categoryId === c.id}
+                      onPress={() => {
+                        setManualCategory(true);
+                        setCategoryId(c.id);
+                      }}
+                    />
+                  ))}
+                </View>
+              </Field>
+
+              <Field label={t.transactions.accountLabel} error={errors.accountId}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {accounts.map((a) => (
+                    <Chip key={a.id} label={a.name} icon="business" color={a.color} selected={accountId === a.id} onPress={() => setAccountId(a.id)} />
+                  ))}
+                </View>
+              </Field>
+            </>
+          )}
 
           <Field label={t.transactions.dateLabel} error={errors.date ?? (parsedDate ? undefined : t.transactions.dateFormatError)}>
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>

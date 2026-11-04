@@ -108,7 +108,18 @@ export default function AccountsScreen() {
           ))}
         </View>
 
-        <Button label={t.accounts.addBankAccount} icon="add" onPress={() => router.push('/account-form')} testID="add-account" />
+        <View style={{ gap: spacing.sm }}>
+          <Button label={t.accounts.addBankAccount} icon="add" onPress={() => router.push('/account-form')} testID="add-account" />
+          {accounts.length >= 2 && (
+            <Button
+              label={t.accounts.transferBetweenAccounts}
+              variant="ghost"
+              icon="swap-horizontal"
+              onPress={() => router.push({ pathname: '/transaction-form', params: { mode: 'transfer' } })}
+              testID="transfer-between-accounts"
+            />
+          )}
+        </View>
       </ScrollView>
 
       {/* Modal de confirmação para excluir uma conta bancária */}
