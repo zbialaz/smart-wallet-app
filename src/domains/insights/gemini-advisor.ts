@@ -167,3 +167,4 @@ export async function requestGeminiAdvice(params: {
     return fail(err instanceof Error ? err.message : 'Falha de conexão com a API do Gemini');
   }
 }
+

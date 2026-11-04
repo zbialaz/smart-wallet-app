@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
-  ImageBackground,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -74,11 +74,12 @@ export function WalletPocket({
           styles.leatherMainShell,
           isDark && { borderColor: 'rgba(212, 123, 74, 0.35)' },
         ]}>
-        <ImageBackground
-          source={require('@/assets/textures/leather.jpg')}
-          resizeMode="cover"
-          imageStyle={styles.leatherImage}
-          style={styles.leatherBacking}>
+        <View style={styles.leatherBacking}>
+          <Image
+            source={require('@/assets/textures/leather.jpg')}
+            resizeMode="cover"
+            style={[StyleSheet.absoluteFill, styles.leatherImage]}
+          />
           <View style={styles.leatherDarkOverlay} />
 
           {/* 1. CÂMARA DOS CARTÕES */}
@@ -159,11 +160,12 @@ export function WalletPocket({
 
           {/* 2. LAPELA FRONTAL DE COURO */}
           <View style={styles.frontPocketFlap}>
-            <ImageBackground
-              source={require('@/assets/textures/leather.jpg')}
-              resizeMode="cover"
-              imageStyle={styles.frontFlapImage}
-              style={styles.frontPocketContent}>
+            <View style={styles.frontPocketContent}>
+              <Image
+                source={require('@/assets/textures/leather.jpg')}
+                resizeMode="cover"
+                style={[StyleSheet.absoluteFill, styles.frontFlapImage]}
+              />
               <View style={styles.frontLeatherOverlay} />
               <View style={styles.stitchLine} />
 
@@ -235,9 +237,9 @@ export function WalletPocket({
                   </Text>
                 </View>
               </View>
-            </ImageBackground>
+            </View>
           </View>
-        </ImageBackground>
+        </View>
       </View>
     </View>
   );
@@ -263,8 +265,11 @@ const styles = StyleSheet.create({
   },
   leatherBacking: {
     paddingTop: 12,
+    overflow: 'hidden',
   },
   leatherImage: {
+    width: '100%',
+    height: '100%',
     borderRadius: radius.xl,
   },
   leatherDarkOverlay: {
@@ -393,6 +398,8 @@ const styles = StyleSheet.create({
     }),
   },
   frontFlapImage: {
+    width: '100%',
+    height: '100%',
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
   },
@@ -400,6 +407,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingTop: spacing.lg,
     gap: spacing.md,
+    overflow: 'hidden',
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
   },

@@ -87,3 +87,4 @@ describe('Consultor Financeiro com Gemini IA (gemini-advisor)', () => {
     });
   });
 });
+
