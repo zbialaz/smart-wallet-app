@@ -45,6 +45,14 @@ import {
   type TransactionDraft,
   type TransactionField,
 } from '@/domains/transactions/transaction';
+import {
+  materializeDueRecurringTransactions,
+  normalizeDayOfMonth,
+  parseRecurringRules,
+  removeRecurringRule,
+  toggleRecurringRule,
+  type RecurringRule,
+} from '@/domains/transactions/recurring';
 import { createTransactionRepository } from '@/domains/transactions/transaction-repository';
 import { validateBudget } from '@/domains/settings/budget';
 import { addMonths, currentYearMonth, today, type YearMonth } from '@/shared/date';
@@ -72,6 +80,8 @@ const EVOLUTION_MONTHS = 6;
 const budgetKey = (userId: string) => `monthly_budget:${userId}`;
 /** Regras aprendidas de categorização automática por usuário (US-016.3). */
 const learnedRulesKey = (userId: string) => `learned_category_rules:${userId}`;
+/** Transações recorrentes mensais por usuário (US-006). */
+const recurringRulesKey = (userId: string) => `recurring_rules:${userId}`;
 
 type Repositories = {
   users: ReturnType<typeof createUserRepository>;
@@ -102,6 +112,8 @@ interface WalletState {
   learnedCategoryRules: LearnedCategoryRules;
   /** US-018: estatísticas mensais por categoria (últimos 6 meses) para alertas de gasto incomum. */
   categoryMonthlyStats: CategoryMonthlyStat[];
+  /** US-006: regras de transações recorrentes mensais do usuário. */
+  recurringRules: RecurringRule[];
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -135,11 +147,16 @@ interface WalletState {
   ): Promise<Result<Category, FieldErrors<CategoryField>>>;
   /** RN-08: sem transações → exclui; com transações → arquiva (preserva o histórico). */
   removeCategory(id: string): Promise<'deleted' | 'archived' | 'forbidden'>;
-  /** Cria (sem id) ou edita (com id) uma transação — US-001, US-002, US-003. */
+  /** Cria (sem id) ou edita (com id) uma transação — US-001, US-002, US-003, US-006. */
   saveTransaction(
     draft: TransactionDraft,
     id?: string,
+    options?: { recurringDayOfMonth?: number },
   ): Promise<Result<Transaction, FieldErrors<TransactionField>>>;
+  /** US-006.3: pausa ou reativa uma transação recorrente. */
+  setRecurringRuleActive(ruleId: string, active: boolean): Promise<void>;
+  /** US-006: remove uma regra de recorrência. */
+  deleteRecurringRule(ruleId: string): Promise<void>;
   deleteTransaction(id: string): Promise<void>; // US-004
   findTransaction(id: string): Promise<Transaction | null>;
   /** US-014.3: detalhamento por categoria dos gastos de um mês específico. */
@@ -169,6 +186,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     monthlyBudget: null,
     learnedCategoryRules: {},
     categoryMonthlyStats: [],
+    recurringRules: [],
 
     async init(db) {
       const repos: Repositories = {
@@ -243,11 +261,42 @@ export const useWallet = create<WalletState>()((set, get) => {
           monthlyEvolution: [],
           monthlyBudget: null,
           learnedCategoryRules: {},
+          categoryMonthlyStats: [],
+          recurringRules: [],
         });
         return;
       }
 
       const month = get().selectedMonth;
+      const db = get().db;
+      const recurringRow = await db?.getFirstAsync<{ value: string }>(
+        'SELECT value FROM settings WHERE key = ?',
+        recurringRulesKey(user.id),
+      );
+      let recurringRules = parseRecurringRules(recurringRow?.value);
+
+      // US-006.2: materializa automaticamente transações recorrentes vencidas no mês atual/selecionado
+      if (recurringRules.length > 0 && db) {
+        const materialized = materializeDueRecurringTransactions({
+          rules: recurringRules,
+          targetMonth: month,
+          today: today(),
+          idGenerator: generateId,
+          now: nowISO(),
+        });
+        if (materialized.changed) {
+          recurringRules = materialized.updatedRules;
+          for (const tx of materialized.transactionsToInsert) {
+            await repos.transactions.insert(tx);
+          }
+          await db.runAsync(
+            'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+            recurringRulesKey(user.id),
+            JSON.stringify(recurringRules),
+          );
+        }
+      }
+
       const fromMonth = addMonths(month, -(EVOLUTION_MONTHS - 1));
       const [accountTotals, transactions, totalRows, catStats, budgetRow, learnedRow] =
         await Promise.all([
@@ -255,11 +304,11 @@ export const useWallet = create<WalletState>()((set, get) => {
           repos.transactions.listByMonth(month, user.id),
           repos.transactions.monthlyTotals(fromMonth, month, user.id),
           repos.transactions.categoryMonthlyStats(fromMonth, month, user.id),
-          get().db?.getFirstAsync<{ value: string }>(
+          db?.getFirstAsync<{ value: string }>(
             'SELECT value FROM settings WHERE key = ?',
             budgetKey(user.id),
           ),
-          get().db?.getFirstAsync<{ value: string }>(
+          db?.getFirstAsync<{ value: string }>(
             'SELECT value FROM settings WHERE key = ?',
             learnedRulesKey(user.id),
           ),
@@ -281,6 +330,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         monthlyBudget:
           Number.isSafeInteger(budgetCents) && budgetCents > 0 ? Money.fromCents(budgetCents) : null,
         learnedCategoryRules: parseLearnedRules(learnedRow?.value),
+        recurringRules,
       });
     },
 
@@ -629,7 +679,7 @@ export const useWallet = create<WalletState>()((set, get) => {
       return 'deleted';
     },
 
-    async saveTransaction(draft, id) {
+    async saveTransaction(draft, id, options) {
       const repos = requireRepos();
       const original = id ? await repos.transactions.findById(id) : undefined;
       if (id && !original) {
@@ -672,9 +722,58 @@ export const useWallet = create<WalletState>()((set, get) => {
         }
       }
 
+      // US-006.1: registra regra de recorrência mensal quando ativada na criação
+      if (!original && user && db && options?.recurringDayOfMonth !== undefined) {
+        const txMonth = transaction.date.slice(0, 7) as YearMonth;
+        const newRule: RecurringRule = {
+          id: generateId(),
+          type: transaction.type,
+          amountCents: transaction.amount.cents,
+          description: transaction.description,
+          categoryId: transaction.categoryId,
+          accountId: transaction.accountId,
+          dayOfMonth: normalizeDayOfMonth(options.recurringDayOfMonth),
+          active: true,
+          generatedMonths: [txMonth],
+          createdAt: now,
+        };
+        const updatedRules = [...get().recurringRules, newRule];
+        await db.runAsync(
+          'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+          recurringRulesKey(user.id),
+          JSON.stringify(updatedRules),
+        );
+      }
+
       // Não há saldo para "recalcular" (RN-05): basta recarregar.
       await get().refresh();
       return ok(transaction);
+    },
+
+    async setRecurringRuleActive(ruleId, active) {
+      const user = get().currentUser;
+      const db = get().db;
+      if (!user || !db) return;
+      const next = toggleRecurringRule(get().recurringRules, ruleId, active);
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        recurringRulesKey(user.id),
+        JSON.stringify(next),
+      );
+      await get().refresh();
+    },
+
+    async deleteRecurringRule(ruleId) {
+      const user = get().currentUser;
+      const db = get().db;
+      if (!user || !db) return;
+      const next = removeRecurringRule(get().recurringRules, ruleId);
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        recurringRulesKey(user.id),
+        JSON.stringify(next),
+      );
+      set({ recurringRules: next });
     },
 
     async deleteTransaction(id) {

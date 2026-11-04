@@ -7,6 +7,7 @@ import type { TransferField } from '@/domains/accounts/transfer';
 import { suggestCategory } from '@/domains/categories/auto-classify';
 import { categoriesForType } from '@/domains/categories/category';
 import { detectSingleExpenseAlert } from '@/domains/insights/unusual-spending';
+import { dayFromISODate } from '@/domains/transactions/recurring';
 import { DESCRIPTION_MAX_LENGTH, type TransactionField } from '@/domains/transactions/transaction';
 import { addDays, formatDateBR, parseDateBR, today, type ISODate } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
@@ -57,6 +58,7 @@ export default function TransactionFormScreen() {
   const [accountId, setAccountId] = useState<string | null>(accounts.length === 1 ? accounts[0].id : null);
   const [toAccountId, setToAccountId] = useState<string | null>(null);
   const [dateText, setDateText] = useState(formatDateBR(today()));
+  const [isRecurring, setIsRecurring] = useState(false);
   const [errors, setErrors] = useState<FieldErrors<TransactionField | TransferField>>({});
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -149,6 +151,7 @@ export default function TransactionFormScreen() {
       return;
     }
 
+    const recurringDay = dayFromISODate(parsedDate ?? today());
     const result = await saveTransaction(
       {
         type,
@@ -160,6 +163,7 @@ export default function TransactionFormScreen() {
         date: (parsedDate ?? '') as ISODate,
       },
       id,
+      !isEditing && isRecurring ? { recurringDayOfMonth: recurringDay } : undefined,
     );
     setSaving(false);
     if (!result.ok) {
@@ -352,10 +356,24 @@ export default function TransactionFormScreen() {
           )}
 
           <Field label={t.transactions.dateLabel} error={errors.date ?? (parsedDate ? undefined : t.transactions.dateFormatError)}>
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
               <Chip label={t.common.today} selected={parsedDate === today()} onPress={() => setDateText(formatDateBR(today()))} />
               <Chip label={t.common.yesterday} selected={parsedDate === addDays(today(), -1)} onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} />
+              {!isEditing && !isTransfer && (
+                <Chip
+                  label={t.transactions.recurringToggle}
+                  icon="repeat"
+                  color={colors.primary}
+                  selected={isRecurring}
+                  onPress={() => setIsRecurring((v) => !v)}
+                />
+              )}
             </View>
+            {!isEditing && !isTransfer && isRecurring && (
+              <Text variant="caption" color="primary" testID="recurring-hint">
+                {t.transactions.recurringHint(dayFromISODate(parsedDate ?? today()))}
+              </Text>
+            )}
             <TextField
               testID="date-input"
               value={dateText}

@@ -13,11 +13,12 @@ import {
 import type { Transaction } from '@/domains/transactions/transaction';
 import { formatRelativeDate } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
+import { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
-import { Button, Chip, EmptyState, Fab, Screen, TextField } from '@/ui/components';
+import { Button, Card, Chip, EmptyState, Fab, Screen, TextField } from '@/ui/components';
 import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
-import { spacing, useTheme } from '@/ui/theme';
+import { radius, spacing, useTheme } from '@/ui/theme';
 
 /**
  * Lista do mês agrupada por dia (US-003.1) com busca e filtros combinados (US-005).
@@ -32,6 +33,9 @@ export default function TransactionsScreen() {
   const transactions = useWallet((s) => s.transactions);
   const categories = useWallet((s) => s.categories);
   const accounts = useWallet((s) => s.accounts);
+  const recurringRules = useWallet((s) => s.recurringRules);
+  const setRecurringRuleActive = useWallet((s) => s.setRecurringRuleActive);
+  const deleteRecurringRule = useWallet((s) => s.deleteRecurringRule);
 
   const [filters, setFilters] = useState<TransactionFilters>(EMPTY_FILTERS);
   const filtersActive = hasActiveFilters(filters);
@@ -153,6 +157,57 @@ export default function TransactionsScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: 120, flexGrow: 1 }}
         stickySectionHeadersEnabled={false}
+        ListHeaderComponent={
+          recurringRules.length > 0 ? (
+            <View style={{ gap: spacing.sm, marginBottom: spacing.md }}>
+              <Text variant="label" color="textMuted" style={{ fontSize: 10 }}>
+                {t.transactions.recurringSectionTitle}
+              </Text>
+              {recurringRules.map((rule) => {
+                const cat = categories.find((c) => c.id === rule.categoryId);
+                const catName = cat ? tCategory(cat.id, cat.name) : t.transactions.fallbackTransaction;
+                return (
+                  <Card
+                    key={rule.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      paddingVertical: spacing.md,
+                    }}>
+                    <Ionicons name="repeat" size={18} color={rule.active ? colors.primary : colors.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text variant="bodyStrong" numberOfLines={1}>
+                        {rule.description ?? catName} • {Money.fromCents(rule.amountCents).format()}
+                      </Text>
+                      <Text variant="caption" color="textMuted">
+                        {t.transactions.recurringEveryMonthOnDay(rule.dayOfMonth)}
+                      </Text>
+                    </View>
+                    <Chip
+                      label={rule.active ? t.transactions.recurringActive : t.transactions.recurringPaused}
+                      selected={rule.active}
+                      color={rule.active ? colors.income : colors.textMuted}
+                      onPress={() => setRecurringRuleActive(rule.id, !rule.active)}
+                    />
+                    <Pressable
+                      onPress={() => deleteRecurringRule(rule.id)}
+                      hitSlop={8}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: radius.sm,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <Ionicons name="trash-outline" size={16} color={colors.expense} />
+                    </Pressable>
+                  </Card>
+                );
+              })}
+            </View>
+          ) : null
+        }
         renderSectionHeader={({ section }: { section: { date: string; data: Transaction[] } }) => (
           <Text variant="label" color="textMuted" style={{ marginTop: spacing.lg, marginBottom: spacing.xs }}>
             {formatRelativeDate(section.date, undefined, language)}

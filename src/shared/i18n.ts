@@ -168,6 +168,12 @@ const pt = {
     learnedBadge: 'Aprendida com você',
     unusualSingleAlert: (category: string, multiplier: number, average: string) =>
       `Gasto incomum: este valor é ${multiplier}x maior que sua média por lançamento em ${category} (${average}).`,
+    recurringToggle: 'Recorrente (mensal)',
+    recurringHint: (day: number) => `Será lançada automaticamente todo mês no dia ${day}.`,
+    recurringSectionTitle: 'RECORRÊNCIAS MENSAIS',
+    recurringEveryMonthOnDay: (day: number) => `Todo mês no dia ${day}`,
+    recurringActive: 'Ativa',
+    recurringPaused: 'Pausada',
   },
   accounts: {
     title: 'Contas Bancárias',
@@ -404,6 +410,12 @@ const en: Translations = {
     learnedBadge: 'Learned from you',
     unusualSingleAlert: (category: string, multiplier: number, average: string) =>
       `Unusual expense: this amount is ${multiplier}x higher than your average transaction in ${category} (${average}).`,
+    recurringToggle: 'Recurring (monthly)',
+    recurringHint: (day: number) => `Will be created automatically every month on day ${day}.`,
+    recurringSectionTitle: 'MONTHLY RECURRING',
+    recurringEveryMonthOnDay: (day: number) => `Every month on day ${day}`,
+    recurringActive: 'Active',
+    recurringPaused: 'Paused',
   },
   accounts: {
     title: 'Bank Accounts',
@@ -637,6 +649,12 @@ const es: Translations = {
     learnedBadge: 'Aprendida de ti',
     unusualSingleAlert: (category: string, multiplier: number, average: string) =>
       `Gasto inusual: este monto es ${multiplier}x mayor que tu promedio por transacción en ${category} (${average}).`,
+    recurringToggle: 'Recurrente (mensual)',
+    recurringHint: (day: number) => `Se creará automáticamente cada mes el día ${day}.`,
+    recurringSectionTitle: 'RECURRENCIAS MENSUALES',
+    recurringEveryMonthOnDay: (day: number) => `Cada mes el día ${day}`,
+    recurringActive: 'Activa',
+    recurringPaused: 'Pausada',
   },
   accounts: {
     title: 'Cuentas Bancarias',
