@@ -5,12 +5,12 @@ import type { Money } from '@/shared/money';
 import { fail, ok, type Result } from '@/shared/result';
 
 /**
- * Consultor Financeiro com IA Generativa (Google Gemini — `gemini-2.5-flash`).
+ * Consultor Financeiro com IA Generativa (Google Gemini — `gemini-3.8-flash`).
  *
  * Privacidade por design: envia APENAS dados agregados do mês (totais de receita/gasto,
  * meta mensal e fatias por categoria), nunca e-mail ou credenciais do usuário.
  */
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+export const GEMINI_MODEL = 'gemini-3.8-flash';
 export const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export interface FinancialPromptInput {
