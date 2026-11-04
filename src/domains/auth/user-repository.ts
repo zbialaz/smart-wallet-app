@@ -80,6 +80,7 @@ export function createUserRepository(db: SQLiteDatabase) {
         await db.runAsync('DELETE FROM settings WHERE key = ?', `monthly_budget:${userId}`);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `learned_category_rules:${userId}`);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `recurring_rules:${userId}`);
+        await db.runAsync('DELETE FROM settings WHERE key = ?', `gemini_api_key:${userId}`);
         await db.runAsync(`DELETE FROM settings WHERE key = 'current_user_id'`);
       });
     },

@@ -86,3 +86,4 @@ describe('US-006 — Transações recorrentes mensais (recurring)', () => {
     expect(parseRecurringRules(JSON.stringify([baseRule]))).toHaveLength(1);
   });
 });
+

@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { buildFinancialPrompt, requestGeminiAdvice } from '@/domains/insights/gemini-advisor';
 import { formatRelativeDate } from '@/shared/date';
 import { addMonths, currentYearMonth, formatYearMonth, type YearMonth } from '@/shared/date';
 import { budgetProgress } from '@/domains/settings/budget';
@@ -10,14 +12,16 @@ import type { Money } from '@/shared/money';
 import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
 import {
   useAccountMap,
+  useCategoryBreakdown,
   useCategoryMap,
   useCategoryPaceAlerts,
   useExpenseComparison,
   useMonthlyInsight,
+  useMonthSummary,
 } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 
-import { IconBadge } from './components';
+import { Button, IconBadge, TextField } from './components';
 import { Text } from './text';
 import { radius, spacing, usePrivacy, useTheme, type ThemeColors } from './theme';
 import { MASKED_BALANCE } from './wallet-pocket';
@@ -283,16 +287,54 @@ export function BudgetProgressCard({ spent, budget }: { spent: Money; budget: Mo
  * ou avisa quantas transações faltam para desbloquear.
  */
 export function MonthlyInsightCard() {
+  const router = useRouter();
   const { colors } = useTheme();
   const { language, t, tCategory } = useI18n();
   const { isBalanceHidden } = usePrivacy();
   const insight = useMonthlyInsight();
+  const summary = useMonthSummary();
+  const breakdown = useCategoryBreakdown();
+  const comparison = useExpenseComparison();
   const currentUser = useWallet((s) => s.currentUser);
   const selectedMonth = useWallet((s) => s.selectedMonth);
+  const monthlyBudget = useWallet((s) => s.monthlyBudget);
+  const geminiApiKey = useWallet((s) => s.geminiApiKey);
+
+  const [question, setQuestion] = useState('');
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const firstName = currentUser?.name?.trim().split(/\s+/)[0] || t.onboarding.defaultUser;
   const monthLabel = formatYearMonth(selectedMonth, language).toLowerCase();
   const show = (m: Money) => (isBalanceHidden ? MASKED_BALANCE : m.format());
+
+  async function handleAskGemini() {
+    setAiLoading(true);
+    setAiError(null);
+    const localizedSlices = breakdown.map((s) => ({
+      ...s,
+      name: tCategory(s.categoryId, s.name),
+    }));
+    const prompt = buildFinancialPrompt({
+      userName: firstName,
+      monthLabel,
+      language,
+      totalIncome: summary.income,
+      totalExpense: summary.expense,
+      monthlyBudget,
+      breakdown: localizedSlices,
+      comparison,
+      customQuestion: question,
+    });
+    const res = await requestGeminiAdvice({ apiKey: geminiApiKey, prompt });
+    setAiLoading(false);
+    if (!res.ok) {
+      setAiError(res.error);
+      return;
+    }
+    setAiResponse(res.value);
+  }
 
   let bodyText: string;
   if (insight.kind === 'insufficient_data') {
@@ -329,22 +371,78 @@ export function MonthlyInsightCard() {
     <View
       testID="monthly-insight-card"
       style={{
-        gap: spacing.sm,
+        gap: spacing.md,
         padding: spacing.lg,
         borderRadius: radius.lg,
         borderWidth: 1,
         borderColor: colors.primary + '38',
         backgroundColor: colors.surface,
       }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-        <Ionicons name="sparkles" size={14} color={colors.primary} />
-        <Text variant="label" style={{ fontSize: 10, letterSpacing: 1.2, color: colors.primary }}>
-          {t.dashboard.insightTitle}
-        </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+          <Ionicons name="sparkles" size={14} color={colors.primary} />
+          <Text variant="label" style={{ fontSize: 10, letterSpacing: 1.2, color: colors.primary }}>
+            {t.dashboard.insightTitle}
+          </Text>
+        </View>
+        {geminiApiKey.trim().length > 0 && (
+          <Text variant="caption" style={{ fontSize: 10, color: colors.primary, fontWeight: '700' }}>
+            {t.dashboard.askGeminiBadge}
+          </Text>
+        )}
       </View>
+
       <Text color={insight.kind === 'insufficient_data' ? 'textMuted' : 'text'} style={{ lineHeight: 20 }}>
         {bodyText}
       </Text>
+
+      {geminiApiKey.trim().length > 0 ? (
+        <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
+          <TextField
+            testID="gemini-question-input"
+            value={question}
+            onChangeText={setQuestion}
+            placeholder={t.dashboard.askGeminiPlaceholder}
+          />
+          <Button
+            testID="ask-gemini-btn"
+            label={t.dashboard.askGeminiBtn}
+            variant="secondary"
+            icon="sparkles"
+            loading={aiLoading}
+            onPress={handleAskGemini}
+          />
+          {aiError && (
+            <Text variant="caption" color="expense">
+              {aiError}
+            </Text>
+          )}
+          {aiResponse && (
+            <View
+              testID="gemini-response-box"
+              style={{
+                padding: spacing.md,
+                borderRadius: radius.md,
+                backgroundColor: colors.primarySoft,
+                borderWidth: 1,
+                borderColor: colors.primary + '38',
+                gap: spacing.xs,
+              }}>
+              <Text style={{ lineHeight: 20 }}>{aiResponse}</Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <Pressable
+          testID="configure-gemini-link"
+          onPress={() => router.navigate('/(tabs)/settings')}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 2 }}>
+          <Ionicons name="key-outline" size={13} color={colors.primary} />
+          <Text variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
+            {t.dashboard.askGeminiConfigureLink}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }

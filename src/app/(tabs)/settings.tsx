@@ -85,9 +85,17 @@ export default function SettingsScreen() {
   const [budgetInput, setBudgetInput] = useState<Money>(monthlyBudget ?? Money.zero());
   const [budgetError, setBudgetError] = useState<string | null>(null);
 
+  const geminiApiKey = useWallet((s) => s.geminiApiKey);
+  const setGeminiApiKey = useWallet((s) => s.setGeminiApiKey);
+  const [geminiInput, setGeminiInput] = useState(geminiApiKey);
+
   useEffect(() => {
     setBudgetInput(monthlyBudget ?? Money.zero());
   }, [monthlyBudget]);
+
+  useEffect(() => {
+    setGeminiInput(geminiApiKey);
+  }, [geminiApiKey]);
 
   async function handleSaveBudget() {
     const res = await setMonthlyBudget(budgetInput);
@@ -420,6 +428,54 @@ export default function SettingsScreen() {
                 testID="save-budget-btn"
                 label={t.settings.budgetSave}
                 onPress={handleSaveBudget}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+        </FadeIn>
+
+        {/* 5.5. GOOGLE GEMINI IA (OPCIONAL) */}
+        <FadeIn delay={155}>
+          <Card style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <IconBadge icon="sparkles" color={colors.primary} size={38} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">{t.settings.geminiTitle}</Text>
+                <Text variant="caption" color="textMuted">
+                  {geminiApiKey.trim().length > 0 ? t.settings.geminiActive : t.settings.geminiNone}
+                </Text>
+              </View>
+            </View>
+
+            <Field label={t.settings.geminiDesc}>
+              <TextField
+                testID="gemini-api-key-input"
+                value={geminiInput}
+                onChangeText={setGeminiInput}
+                placeholder={t.settings.geminiPlaceholder}
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+              />
+            </Field>
+
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              {geminiApiKey.trim().length > 0 && (
+                <Button
+                  testID="remove-gemini-key-btn"
+                  label={t.settings.geminiRemove}
+                  variant="secondary"
+                  onPress={() => {
+                    setGeminiInput('');
+                    setGeminiApiKey('');
+                  }}
+                  style={{ flex: 1 }}
+                />
+              )}
+              <Button
+                testID="save-gemini-key-btn"
+                label={t.settings.geminiSave}
+                onPress={() => setGeminiApiKey(geminiInput)}
                 style={{ flex: 1 }}
               />
             </View>

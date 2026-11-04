@@ -82,6 +82,10 @@ const budgetKey = (userId: string) => `monthly_budget:${userId}`;
 const learnedRulesKey = (userId: string) => `learned_category_rules:${userId}`;
 /** Transações recorrentes mensais por usuário (US-006). */
 const recurringRulesKey = (userId: string) => `recurring_rules:${userId}`;
+/** Chave opcional da API do Google Gemini por usuário. */
+const geminiKey = (userId: string) => `gemini_api_key:${userId}`;
+const envGeminiKey = () =>
+  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_GEMINI_API_KEY) || '';
 
 type Repositories = {
   users: ReturnType<typeof createUserRepository>;
@@ -114,6 +118,8 @@ interface WalletState {
   categoryMonthlyStats: CategoryMonthlyStat[];
   /** US-006: regras de transações recorrentes mensais do usuário. */
   recurringRules: RecurringRule[];
+  /** Chave da API do Google Gemini (do usuário ou de EXPO_PUBLIC_GEMINI_API_KEY). */
+  geminiApiKey: string;
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -124,6 +130,8 @@ interface WalletState {
   toggleBalanceHidden(): Promise<void>;
   /** US-019: define (ou remove, com null) a meta de gastos mensal. */
   setMonthlyBudget(value: Money | null): Promise<Result<Money | null, string>>;
+  /** Salva ou limpa a chave da API do Google Gemini do usuário logado. */
+  setGeminiApiKey(apiKey: string): Promise<void>;
 
   /** Autenticação e ciclo de vida da conta de usuário */
   registerUser(draft: RegisterDraft): Promise<Result<User, FieldErrors<AuthField>>>;
@@ -187,6 +195,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     learnedCategoryRules: {},
     categoryMonthlyStats: [],
     recurringRules: [],
+    geminiApiKey: envGeminiKey(),
 
     async init(db) {
       const repos: Repositories = {
@@ -298,7 +307,7 @@ export const useWallet = create<WalletState>()((set, get) => {
       }
 
       const fromMonth = addMonths(month, -(EVOLUTION_MONTHS - 1));
-      const [accountTotals, transactions, totalRows, catStats, budgetRow, learnedRow] =
+      const [accountTotals, transactions, totalRows, catStats, budgetRow, learnedRow, geminiRow] =
         await Promise.all([
           repos.accounts.listActiveWithTotals(user.id),
           repos.transactions.listByMonth(month, user.id),
@@ -311,6 +320,10 @@ export const useWallet = create<WalletState>()((set, get) => {
           db?.getFirstAsync<{ value: string }>(
             'SELECT value FROM settings WHERE key = ?',
             learnedRulesKey(user.id),
+          ),
+          db?.getFirstAsync<{ value: string }>(
+            'SELECT value FROM settings WHERE key = ?',
+            geminiKey(user.id),
           ),
         ]);
       const budgetCents = budgetRow ? Number(budgetRow.value) : NaN;
@@ -331,6 +344,7 @@ export const useWallet = create<WalletState>()((set, get) => {
           Number.isSafeInteger(budgetCents) && budgetCents > 0 ? Money.fromCents(budgetCents) : null,
         learnedCategoryRules: parseLearnedRules(learnedRow?.value),
         recurringRules,
+        geminiApiKey: geminiRow?.value?.trim() || envGeminiKey(),
       });
     },
 
@@ -414,6 +428,26 @@ export const useWallet = create<WalletState>()((set, get) => {
       );
       set({ monthlyBudget: validated.value });
       return ok(validated.value);
+    },
+
+    async setGeminiApiKey(apiKey) {
+      const user = get().currentUser;
+      const db = get().db;
+      const trimmed = apiKey.trim();
+      if (!user || !db) return;
+
+      if (!trimmed) {
+        await db.runAsync('DELETE FROM settings WHERE key = ?', geminiKey(user.id));
+        set({ geminiApiKey: envGeminiKey() });
+        return;
+      }
+
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        geminiKey(user.id),
+        trimmed,
+      );
+      set({ geminiApiKey: trimmed });
     },
 
     async registerUser(draft) {
