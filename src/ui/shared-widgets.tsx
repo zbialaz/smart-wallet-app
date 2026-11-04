@@ -378,18 +378,11 @@ export function MonthlyInsightCard() {
         borderColor: colors.primary + '38',
         backgroundColor: colors.surface,
       }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-          <Ionicons name="sparkles" size={14} color={colors.primary} />
-          <Text variant="label" style={{ fontSize: 10, letterSpacing: 1.2, color: colors.primary }}>
-            {t.dashboard.insightTitle}
-          </Text>
-        </View>
-        {geminiApiKey.trim().length > 0 && (
-          <Text variant="caption" style={{ fontSize: 10, color: colors.primary, fontWeight: '700' }}>
-            {t.dashboard.askGeminiBadge}
-          </Text>
-        )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        <Ionicons name="sparkles" size={14} color={colors.primary} />
+        <Text variant="label" style={{ fontSize: 10, letterSpacing: 1.2, color: colors.primary }}>
+          {t.dashboard.insightTitle}
+        </Text>
       </View>
 
       <Text color={insight.kind === 'insufficient_data' ? 'textMuted' : 'text'} style={{ lineHeight: 20 }}>
