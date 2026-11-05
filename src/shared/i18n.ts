@@ -220,6 +220,25 @@ const pt = {
     accountNameLabel: 'Nome / apelido da conta',
     accountNamePlaceholder: 'Ex.: Nubank, Carteira…',
     initialBalanceLabel: 'Saldo inicial',
+    openFinanceBtn: 'Sincronizar banco (Open Finance)',
+    openFinanceTitle: 'Conectar banco',
+    openFinanceSubtitle: 'Puxe suas compras do banco, já classificadas por categoria.',
+    openFinanceTargetAccount: 'Em qual conta salvar as movimentações?',
+    openFinanceCredentialsTitle: 'CONEXÃO PLUGGY OPEN FINANCE',
+    openFinanceClientIdLabel: 'Client ID',
+    openFinanceClientSecretLabel: 'Client Secret',
+    openFinanceItemIdLabel: 'Item ID da conta conectada',
+    openFinanceSaveConfig: 'Salvar conexão',
+    openFinanceConnectWidgetBtn: 'Conectar meu banco no navegador',
+    openFinanceSyncBtn: 'Buscar compras do banco',
+    openFinanceDemoBtn: 'Simular compras do banco (Teste rápido)',
+    openFinancePreviewTitle: (count: number) =>
+      `${count} ${count === 1 ? 'movimentação encontrada' : 'movimentações encontradas'}`,
+    openFinanceAlreadyImported: 'Já importada',
+    openFinanceImportSelectedBtn: (count: number) =>
+      `Confirmar e inserir (${count})`,
+    openFinanceImportSuccess: (count: number) =>
+      `${count} ${count === 1 ? 'transação importada' : 'transações importadas'} com sucesso!`,
   },
   onboarding: {
     greeting: (name: string) => `Olá, ${name}!`,
@@ -499,6 +518,25 @@ const en: Translations = {
     accountNameLabel: 'Account name / nickname',
     accountNamePlaceholder: 'E.g.: Checking, Cash Wallet…',
     initialBalanceLabel: 'Initial balance',
+    openFinanceBtn: 'Sync bank (Open Finance)',
+    openFinanceTitle: 'Connect bank',
+    openFinanceSubtitle: 'Pull your bank transactions, automatically categorized.',
+    openFinanceTargetAccount: 'Which account should receive the transactions?',
+    openFinanceCredentialsTitle: 'PLUGGY OPEN FINANCE CONNECTION',
+    openFinanceClientIdLabel: 'Client ID',
+    openFinanceClientSecretLabel: 'Client Secret',
+    openFinanceItemIdLabel: 'Connected Item ID',
+    openFinanceSaveConfig: 'Save connection',
+    openFinanceConnectWidgetBtn: 'Connect my bank in browser',
+    openFinanceSyncBtn: 'Fetch bank transactions',
+    openFinanceDemoBtn: 'Simulate bank transactions (Quick test)',
+    openFinancePreviewTitle: (count: number) =>
+      `${count} ${count === 1 ? 'transaction found' : 'transactions found'}`,
+    openFinanceAlreadyImported: 'Already imported',
+    openFinanceImportSelectedBtn: (count: number) =>
+      `Confirm & import (${count})`,
+    openFinanceImportSuccess: (count: number) =>
+      `${count} ${count === 1 ? 'transaction' : 'transactions'} imported!`,
   },
   onboarding: {
     greeting: (name: string) => `Hello, ${name}!`,
@@ -775,6 +813,25 @@ const es: Translations = {
     accountNameLabel: 'Nombre / apodo de la cuenta',
     accountNamePlaceholder: 'Ej.: Santander, Billetera…',
     initialBalanceLabel: 'Saldo inicial',
+    openFinanceBtn: 'Sincronizar banco (Open Finance)',
+    openFinanceTitle: 'Conectar banco',
+    openFinanceSubtitle: 'Trae tus compras del banco, ya clasificadas por categoría.',
+    openFinanceTargetAccount: '¿En qué cuenta guardar los movimientos?',
+    openFinanceCredentialsTitle: 'CONEXIÓN PLUGGY OPEN FINANCE',
+    openFinanceClientIdLabel: 'Client ID',
+    openFinanceClientSecretLabel: 'Client Secret',
+    openFinanceItemIdLabel: 'Item ID de la cuenta conectada',
+    openFinanceSaveConfig: 'Guardar conexión',
+    openFinanceConnectWidgetBtn: 'Conectar mi banco en el navegador',
+    openFinanceSyncBtn: 'Buscar compras del banco',
+    openFinanceDemoBtn: 'Simular compras del banco (Prueba rápida)',
+    openFinancePreviewTitle: (count: number) =>
+      `${count} ${count === 1 ? 'movimiento encontrado' : 'movimientos encontrados'}`,
+    openFinanceAlreadyImported: 'Ya importado',
+    openFinanceImportSelectedBtn: (count: number) =>
+      `Confirmar e insertar (${count})`,
+    openFinanceImportSuccess: (count: number) =>
+      `¡${count} ${count === 1 ? 'transacción importada' : 'transacciones importadas'} con éxito!`,
   },
   onboarding: {
     greeting: (name: string) => `¡Hola, ${name}!`,

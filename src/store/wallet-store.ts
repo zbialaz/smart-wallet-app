@@ -40,6 +40,11 @@ import { buildCategoryBreakdown, type CategorySlice } from '@/domains/dashboard/
 import { buildMonthlyEvolution, type MonthlyTotals } from '@/domains/dashboard/trends';
 import type { CategoryMonthlyStat } from '@/domains/insights/unusual-spending';
 import {
+  toTransactionDraft,
+  type ClassifiedBankTransaction,
+  type PluggyCredentials,
+} from '@/domains/open-finance/pluggy-sync';
+import {
   validateTransaction,
   type Transaction,
   type TransactionDraft,
@@ -86,6 +91,34 @@ const recurringRulesKey = (userId: string) => `recurring_rules:${userId}`;
 const geminiKey = (userId: string) => `gemini_api_key:${userId}`;
 const envGeminiKey = () =>
   (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_GEMINI_API_KEY) || '';
+/** Credenciais Pluggy Open Finance por usuário. */
+const openFinanceConfigKey = (userId: string) => `open_finance_config:${userId}`;
+/** Lista de IDs de transações do Open Finance já importadas por usuário. */
+const importedOpenFinanceIdsKey = (userId: string) => `imported_open_finance_ids:${userId}`;
+
+function parseOpenFinanceConfig(raw?: string | null): PluggyCredentials {
+  if (!raw) return { clientId: '', clientSecret: '', itemId: '' };
+  try {
+    const parsed = JSON.parse(raw) as Partial<PluggyCredentials>;
+    return {
+      clientId: typeof parsed.clientId === 'string' ? parsed.clientId : '',
+      clientSecret: typeof parsed.clientSecret === 'string' ? parsed.clientSecret : '',
+      itemId: typeof parsed.itemId === 'string' ? parsed.itemId : '',
+    };
+  } catch {
+    return { clientId: '', clientSecret: '', itemId: '' };
+  }
+}
+
+function parseStringArray(raw?: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 type Repositories = {
   users: ReturnType<typeof createUserRepository>;
@@ -120,6 +153,10 @@ interface WalletState {
   recurringRules: RecurringRule[];
   /** Chave da API do Google Gemini (do usuário ou de EXPO_PUBLIC_GEMINI_API_KEY). */
   geminiApiKey: string;
+  /** Configuração do Open Finance (Pluggy API) do usuário. */
+  openFinanceConfig: PluggyCredentials;
+  /** IDs externos de transações do Open Finance já importadas. */
+  importedOpenFinanceIds: string[];
 
   init(db: SQLiteDatabase): Promise<void>;
   refresh(): Promise<void>;
@@ -132,6 +169,13 @@ interface WalletState {
   setMonthlyBudget(value: Money | null): Promise<Result<Money | null, string>>;
   /** Salva ou limpa a chave da API do Google Gemini do usuário logado. */
   setGeminiApiKey(apiKey: string): Promise<void>;
+  /** Salva as credenciais da API Pluggy (Open Finance) do usuário logado. */
+  setOpenFinanceConfig(config: PluggyCredentials): Promise<void>;
+  /** Importa em lote transações vindas do Open Finance já classificadas. */
+  importOpenFinanceTransactions(
+    items: ClassifiedBankTransaction[],
+    accountId: string,
+  ): Promise<Result<number, string>>;
 
   /** Autenticação e ciclo de vida da conta de usuário */
   registerUser(draft: RegisterDraft): Promise<Result<User, FieldErrors<AuthField>>>;
@@ -196,6 +240,8 @@ export const useWallet = create<WalletState>()((set, get) => {
     categoryMonthlyStats: [],
     recurringRules: [],
     geminiApiKey: envGeminiKey(),
+    openFinanceConfig: { clientId: '', clientSecret: '', itemId: '' },
+    importedOpenFinanceIds: [],
 
     async init(db) {
       const repos: Repositories = {
@@ -307,25 +353,42 @@ export const useWallet = create<WalletState>()((set, get) => {
       }
 
       const fromMonth = addMonths(month, -(EVOLUTION_MONTHS - 1));
-      const [accountTotals, transactions, totalRows, catStats, budgetRow, learnedRow, geminiRow] =
-        await Promise.all([
-          repos.accounts.listActiveWithTotals(user.id),
-          repos.transactions.listByMonth(month, user.id),
-          repos.transactions.monthlyTotals(fromMonth, month, user.id),
-          repos.transactions.categoryMonthlyStats(fromMonth, month, user.id),
-          db?.getFirstAsync<{ value: string }>(
-            'SELECT value FROM settings WHERE key = ?',
-            budgetKey(user.id),
-          ),
-          db?.getFirstAsync<{ value: string }>(
-            'SELECT value FROM settings WHERE key = ?',
-            learnedRulesKey(user.id),
-          ),
-          db?.getFirstAsync<{ value: string }>(
-            'SELECT value FROM settings WHERE key = ?',
-            geminiKey(user.id),
-          ),
-        ]);
+      const [
+        accountTotals,
+        transactions,
+        totalRows,
+        catStats,
+        budgetRow,
+        learnedRow,
+        geminiRow,
+        ofConfigRow,
+        ofImportedRow,
+      ] = await Promise.all([
+        repos.accounts.listActiveWithTotals(user.id),
+        repos.transactions.listByMonth(month, user.id),
+        repos.transactions.monthlyTotals(fromMonth, month, user.id),
+        repos.transactions.categoryMonthlyStats(fromMonth, month, user.id),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          budgetKey(user.id),
+        ),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          learnedRulesKey(user.id),
+        ),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          geminiKey(user.id),
+        ),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          openFinanceConfigKey(user.id),
+        ),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          importedOpenFinanceIdsKey(user.id),
+        ),
+      ]);
       const budgetCents = budgetRow ? Number(budgetRow.value) : NaN;
 
       // RN-05: o saldo é calculado pelo domínio a partir dos totais
@@ -345,6 +408,8 @@ export const useWallet = create<WalletState>()((set, get) => {
         learnedCategoryRules: parseLearnedRules(learnedRow?.value),
         recurringRules,
         geminiApiKey: geminiRow?.value?.trim() || envGeminiKey(),
+        openFinanceConfig: parseOpenFinanceConfig(ofConfigRow?.value),
+        importedOpenFinanceIds: parseStringArray(ofImportedRow?.value),
       });
     },
 
@@ -448,6 +513,82 @@ export const useWallet = create<WalletState>()((set, get) => {
         trimmed,
       );
       set({ geminiApiKey: trimmed });
+    },
+
+    async setOpenFinanceConfig(config) {
+      const user = get().currentUser;
+      const db = get().db;
+      if (!user || !db) return;
+      const clean: PluggyCredentials = {
+        clientId: config.clientId.trim(),
+        clientSecret: config.clientSecret.trim(),
+        itemId: config.itemId?.trim() || '',
+      };
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        openFinanceConfigKey(user.id),
+        JSON.stringify(clean),
+      );
+      set({ openFinanceConfig: clean });
+    },
+
+    async importOpenFinanceTransactions(items, accountId) {
+      const user = get().currentUser;
+      const db = get().db;
+      const repos = requireRepos();
+      if (!user || !db) return fail('Usuário não autenticado');
+      if (!accountId) return fail('Selecione a conta bancária de destino');
+      if (items.length === 0) return fail('Selecione ao menos uma transação para importar');
+
+      const accounts = get().accounts;
+      const categories = get().categories;
+      const todayIso = today();
+      const now = nowISO();
+
+      const validTransactions: Transaction[] = [];
+      const newExternalIds: string[] = [];
+
+      for (const item of items) {
+        const draft = toTransactionDraft(item, accountId);
+        const validated = validateTransaction(draft, {
+          accounts,
+          categories,
+          today: todayIso,
+        });
+        if (!validated.ok) continue;
+
+        validTransactions.push({
+          id: generateId(),
+          ...validated.value,
+          createdAt: now,
+          updatedAt: now,
+        });
+        if (item.externalId) {
+          newExternalIds.push(item.externalId);
+        }
+      }
+
+      if (validTransactions.length === 0) {
+        return fail('Nenhuma transação válida para importar');
+      }
+
+      await db.withTransactionAsync(async () => {
+        for (const tx of validTransactions) {
+          await repos.transactions.insert(tx);
+        }
+      });
+
+      const mergedIds = Array.from(
+        new Set([...get().importedOpenFinanceIds, ...newExternalIds]),
+      );
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        importedOpenFinanceIdsKey(user.id),
+        JSON.stringify(mergedIds),
+      );
+
+      await get().refresh();
+      return ok(validTransactions.length);
     },
 
     async registerUser(draft) {

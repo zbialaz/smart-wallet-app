@@ -110,10 +110,19 @@ export default function AccountsScreen() {
 
         <View style={{ gap: spacing.sm }}>
           <Button label={t.accounts.addBankAccount} icon="add" onPress={() => router.push('/account-form')} testID="add-account" />
+          {accounts.length >= 1 && (
+            <Button
+              label={t.accounts.openFinanceBtn}
+              variant="secondary"
+              icon="sync"
+              onPress={() => router.push('/open-finance')}
+              testID="open-finance-sync-btn"
+            />
+          )}
           {accounts.length >= 2 && (
             <Button
               label={t.accounts.transferBetweenAccounts}
-              variant="ghost"
+              variant="secondary"
               icon="swap-horizontal"
               onPress={() => router.push({ pathname: '/transaction-form', params: { mode: 'transfer' } })}
               testID="transfer-between-accounts"

@@ -81,6 +81,7 @@ function Bootstrap() {
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: 'fade' }} />
         <Stack.Screen name="transaction-form" options={{ presentation: 'modal' }} />
         <Stack.Screen name="account-form" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="open-finance" options={{ presentation: 'modal' }} />
         <Stack.Screen name="categories" />
         <Stack.Screen name="category-form" options={{ presentation: 'modal' }} />
       </Stack>

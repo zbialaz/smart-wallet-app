@@ -41,6 +41,15 @@ interface SegmentRule {
 
 const RECEIPT_SEGMENT_RULES: readonly SegmentRule[] = [
   {
+    categoryId: 'cat-subscriptions',
+    segmentLabel: 'Assinaturas / Streaming',
+    keywords: [
+      'netflix', 'spotify', 'disney', 'prime video', 'amazon prime', 'hbo', 'apple tv',
+      'icloud', 'google one', 'youtube premium', 'chatgpt', 'openai', 'claude', 'canva',
+      'adobe', 'xbox game pass', 'ps plus', 'assinatura', 'subscription',
+    ],
+  },
+  {
     categoryId: 'cat-food',
     segmentLabel: 'Alimentação / Supermercado',
     keywords: [
@@ -222,11 +231,16 @@ export function resolveReceiptSegmentAndCategory(params: {
 
   // 3. Procura nas regras de segmento de notas fiscais (merchant + segmento + texto completo)
   const combinedNorm = normalizeText(`${merchant} ${hintSegment ?? ''} ${fullText}`);
+  const combinedWords = new Set(combinedNorm.split(/[^a-z0-9]+/).filter(Boolean));
   for (const rule of RECEIPT_SEGMENT_RULES) {
     if (!activeById.has(rule.categoryId)) continue;
     for (const kw of rule.keywords) {
       const kwNorm = normalizeText(kw);
-      if (kwNorm && combinedNorm.includes(kwNorm)) {
+      if (!kwNorm) continue;
+      const matched = kwNorm.includes(' ')
+        ? combinedNorm.includes(kwNorm)
+        : combinedWords.has(kwNorm) || (kwNorm.length >= 7 && combinedNorm.includes(kwNorm));
+      if (matched) {
         return {
           categoryId: rule.categoryId,
           segmentLabel: hintSegment?.trim() || rule.segmentLabel,
