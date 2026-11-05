@@ -78,7 +78,7 @@ export function WalletPocket({
           <Image
             source={require('@/assets/textures/leather.jpg')}
             resizeMode="cover"
-            style={[StyleSheet.absoluteFill, styles.leatherImage]}
+            style={styles.absoluteLayer}
           />
           <View style={styles.leatherDarkOverlay} />
 
@@ -160,13 +160,13 @@ export function WalletPocket({
 
           {/* 2. LAPELA FRONTAL DE COURO */}
           <View style={styles.frontPocketFlap}>
+            <Image
+              source={require('@/assets/textures/leather.jpg')}
+              resizeMode="cover"
+              style={styles.absoluteLayer}
+            />
+            <View style={styles.frontLeatherOverlay} />
             <View style={styles.frontPocketContent}>
-              <Image
-                source={require('@/assets/textures/leather.jpg')}
-                resizeMode="cover"
-                style={[StyleSheet.absoluteFill, styles.frontFlapImage]}
-              />
-              <View style={styles.frontLeatherOverlay} />
               <View style={styles.stitchLine} />
 
               {/* Cabeçalho limpo com gravação da marca */}
@@ -268,22 +268,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#241208',
   },
   leatherBacking: {
-    paddingTop: 12,
     overflow: 'hidden',
     backgroundColor: '#1E0E06',
   },
-  leatherImage: {
+  absoluteLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     width: '100%',
     height: '100%',
   },
   leatherDarkOverlay: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: 'rgba(26, 12, 5, 0.45)',
   },
   chamberWrapper: {
     zIndex: 1,
-    height: 110,
-    paddingTop: 8,
+    height: 122,
+    paddingTop: 20,
   },
   cardsScrollView: {
     height: 102,
@@ -381,27 +389,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: '#361B0B',
     backgroundColor: '#261208',
+    overflow: 'hidden',
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
-  },
-  frontFlapImage: {
-    width: '100%',
-    height: '100%',
   },
   frontPocketContent: {
     padding: spacing.xl,
     paddingTop: spacing.lg,
     gap: spacing.md,
-    overflow: 'hidden',
-    backgroundColor: '#261208',
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
   },
   frontLeatherOverlay: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: 'rgba(38, 18, 8, 0.34)',
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
   },
   stitchLine: {
     position: 'absolute',
