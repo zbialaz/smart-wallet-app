@@ -1,29 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { hasEnoughHistory } from '@/domains/dashboard/trends';
 import { useI18n } from '@/shared/i18n';
-import { useCategoryBreakdown, useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
+import { useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
-import { EmptyState, Fab, FadeIn, Screen } from '@/ui/components';
-import { DonutChart } from '@/ui/donut-chart';
-import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
+import { Fab, FadeIn, Screen } from '@/ui/components';
 import {
   BudgetProgressCard,
-  MonthlyInsightCard,
   MonthSwitcher,
-  SpendingComparison,
   TransactionRow,
-  UnusualSpendingAlerts,
 } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
-import { spacing, useTheme } from '@/ui/theme';
+import { radius, spacing, useTheme } from '@/ui/theme';
 import { WalletPocket } from '@/ui/wallet-pocket';
 
 /**
- * Dashboard Smart Wallet
- * Apresenta o saldo através da metáfora visual da Carteira Física (WalletPocket),
- * mantendo o restante da interface limpo, editorial e direto ao ponto.
+ * Dashboard Smart Wallet (Início)
+ * Focado na Carteira Física (WalletPocket), meta mensal rápida e últimas movimentações.
+ * Gráficos profundos, Nuvem de Categorias, Maiores Gastos e IA ficam na aba dedicada "Analytics".
  */
 export default function DashboardScreen() {
   const router = useRouter();
@@ -33,10 +28,8 @@ export default function DashboardScreen() {
   const setMonth = useWallet((s) => s.setMonth);
   const transactions = useWallet((s) => s.transactions);
   const accounts = useWallet((s) => s.accounts);
-  const evolution = useWallet((s) => s.monthlyEvolution);
   const budget = useWallet((s) => s.monthlyBudget);
   const summary = useMonthSummary();
-  const slices = useCategoryBreakdown();
   const consolidated = useConsolidatedBalance();
 
   return (
@@ -44,7 +37,6 @@ export default function DashboardScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        
         {/* Seletor de Período Discreto */}
         <FadeIn>
           <MonthSwitcher month={month} onChange={setMonth} />
@@ -60,56 +52,45 @@ export default function DashboardScreen() {
           />
         </FadeIn>
 
-        {/* US-015: gasto do mês + comparativo com o mês anterior */}
+        {/* Meta mensal (se definida) + Atalho rápido para a aba Analytics */}
         <FadeIn delay={90} style={{ gap: spacing.md }}>
-          <SpendingComparison expense={summary.expense} />
-          {/* US-019: progresso da meta mensal (só aparece se o usuário definiu uma) */}
           {budget && <BudgetProgressCard spent={summary.expense} budget={budget} />}
-          {/* US-018.1: alertas de categorias acima do ritmo normal */}
-          <UnusualSpendingAlerts />
-          {/* US-017: resumo mensal inteligente */}
-          {transactions.length > 0 && <MonthlyInsightCard />}
-        </FadeIn>
 
-        {/* Divisor Delicado */}
-        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
-
-        {/* Gráfico de Distribuição */}
-        <FadeIn delay={120} style={styles.section}>
-          <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-            {t.dashboard.distribution}
-          </Text>
-
-          {slices.length > 0 ? (
-            <DonutChart slices={slices} total={summary.expense} />
-          ) : (
-            <EmptyState
-              icon="pie-chart-outline"
-              title={t.dashboard.noExpensesTitle}
-              message={t.dashboard.noExpensesMessage}
-            />
-          )}
-        </FadeIn>
-
-        {/* Divisor Delicado */}
-        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
-
-        {/* US-014: evolução dos gastos nos últimos 6 meses (precisa de ≥ 2 meses com dados) */}
-        {hasEnoughHistory(evolution) && (
-          <>
-            <FadeIn delay={150} style={styles.section}>
-              <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-                {t.dashboard.evolutionTitle}
+          <Pressable
+            testID="open-analytics-banner"
+            onPress={() => router.navigate('/(tabs)/analytics')}
+            style={({ pressed }) => [
+              styles.analyticsBanner,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.primary + '38',
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}>
+            <View
+              style={[
+                styles.analyticsIconWrap,
+                { backgroundColor: colors.primary + '1C' },
+              ]}>
+              <Ionicons name="pie-chart" size={18} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="bodyStrong" style={{ fontSize: 14 }}>
+                {t.dashboard.openAnalyticsBannerTitle}
               </Text>
-              <MonthlyEvolutionChart evolution={evolution} />
-            </FadeIn>
+              <Text variant="caption" color="textMuted" numberOfLines={1}>
+                {t.dashboard.openAnalyticsBannerSub}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+        </FadeIn>
 
-            <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
-          </>
-        )}
+        {/* Divisor Delicado */}
+        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
 
-        {/* Lista de Transações */}
-        <FadeIn delay={180} style={styles.section}>
+        {/* Lista de Últimas Transações */}
+        <FadeIn delay={120} style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text variant="label" color="textMuted" style={styles.sectionTitle}>
               {t.dashboard.transactionsSection}
@@ -131,12 +112,12 @@ export default function DashboardScreen() {
             </Text>
           ) : (
             <View>
-              {transactions.slice(0, 5).map((t) => (
+              {transactions.slice(0, 5).map((tx) => (
                 <TransactionRow
-                  key={t.id}
-                  transaction={t}
+                  key={tx.id}
+                  transaction={tx}
                   onPress={() =>
-                    router.push({ pathname: '/transaction-form', params: { id: t.id } })
+                    router.push({ pathname: '/transaction-form', params: { id: tx.id } })
                   }
                 />
               ))}
@@ -158,10 +139,20 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
     gap: spacing.xl,
   },
-  topBarRow: {
+  analyticsBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+  analyticsIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   thinDivider: {
     height: 1,

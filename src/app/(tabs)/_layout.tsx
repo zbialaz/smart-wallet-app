@@ -33,7 +33,8 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700', paddingBottom: 6 },
         sceneStyle: { backgroundColor: colors.background },
       }}>
-      <Tabs.Screen name="index" options={tab(t.tabs.home, 'pie-chart-outline', 'pie-chart')} />
+      <Tabs.Screen name="index" options={tab(t.tabs.home, 'home-outline', 'home')} />
+      <Tabs.Screen name="analytics" options={tab(t.tabs.analytics, 'pie-chart-outline', 'pie-chart')} />
       <Tabs.Screen name="transactions" options={tab(t.tabs.transactions, 'swap-vertical-outline', 'swap-vertical')} />
       <Tabs.Screen name="accounts" options={tab(t.tabs.accounts, 'wallet-outline', 'wallet')} />
       <Tabs.Screen name="settings" options={tab(t.tabs.settings, 'settings-outline', 'settings')} />
