@@ -1,12 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
 
 import type { TransferField } from '@/domains/accounts/transfer';
 import { suggestCategory } from '@/domains/categories/auto-classify';
 import { categoriesForType } from '@/domains/categories/category';
 import { detectSingleExpenseAlert } from '@/domains/insights/unusual-spending';
+import {
+  analyzeReceiptWithGemini,
+  type ReceiptScanResult,
+} from '@/domains/transactions/receipt-scanner';
 import { dayFromISODate } from '@/domains/transactions/recurring';
 import { DESCRIPTION_MAX_LENGTH, type TransactionField } from '@/domains/transactions/transaction';
 import { addDays, formatDateBR, parseDateBR, today, type ISODate } from '@/shared/date';
@@ -18,6 +30,7 @@ import { useWallet } from '@/store/wallet-store';
 import {
   AmountInput,
   Button,
+  Card,
   Chip,
   ConfirmDialog,
   Field,
@@ -44,6 +57,7 @@ export default function TransactionFormScreen() {
   const transactions = useWallet((s) => s.transactions);
   const learnedCategoryRules = useWallet((s) => s.learnedCategoryRules);
   const categoryMonthlyStats = useWallet((s) => s.categoryMonthlyStats);
+  const geminiApiKey = useWallet((s) => s.geminiApiKey);
   const saveTransaction = useWallet((s) => s.saveTransaction);
   const transferBetweenAccounts = useWallet((s) => s.transferBetweenAccounts);
   const deleteTransaction = useWallet((s) => s.deleteTransaction);
@@ -59,6 +73,11 @@ export default function TransactionFormScreen() {
   const [toAccountId, setToAccountId] = useState<string | null>(null);
   const [dateText, setDateText] = useState(formatDateBR(today()));
   const [isRecurring, setIsRecurring] = useState(false);
+  const [showReceiptPaste, setShowReceiptPaste] = useState(false);
+  const [receiptTextInput, setReceiptTextInput] = useState('');
+  const [scanningReceipt, setScanningReceipt] = useState(false);
+  const [scannedReceipt, setScannedReceipt] = useState<ReceiptScanResult | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [errors, setErrors] = useState<FieldErrors<TransactionField | TransferField>>({});
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -130,6 +149,97 @@ export default function TransactionFormScreen() {
     if (isTransfer) return;
     setIsTransfer(true);
     setErrors({});
+  }
+
+  function applyScannedReceipt(scan: ReceiptScanResult) {
+    setScannedReceipt(scan);
+    setReceiptError(null);
+    setAmount(scan.amount);
+    setDescription(scan.merchant);
+    if (scan.categoryId) {
+      setManualCategory(true);
+      setCategoryId(scan.categoryId);
+    }
+    if (scan.date) {
+      setDateText(formatDateBR(scan.date));
+    }
+    setShowReceiptPaste(false);
+    setErrors({});
+  }
+
+  async function scanFromImageAsset(base64?: string | null, mimeType?: string | null) {
+    if (!base64) {
+      setReceiptError('Não foi possível ler a imagem selecionada.');
+      return;
+    }
+    setScanningReceipt(true);
+    setReceiptError(null);
+    const result = await analyzeReceiptWithGemini({
+      apiKey: geminiApiKey,
+      imageBase64: base64,
+      mimeType: mimeType || 'image/jpeg',
+      categories,
+      learnedRules: learnedCategoryRules,
+      history: transactions,
+      today: today(),
+    });
+    setScanningReceipt(false);
+    if (!result.ok) {
+      setReceiptError(result.error);
+      return;
+    }
+    applyScannedReceipt(result.value);
+  }
+
+  async function onScanReceiptCamera() {
+    setReceiptError(null);
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setReceiptError(t.transactions.scanReceiptPermissionDenied);
+      return;
+    }
+    const picked = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: true,
+    });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    await scanFromImageAsset(picked.assets[0].base64, picked.assets[0].mimeType);
+  }
+
+  async function onScanReceiptGallery() {
+    setReceiptError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setReceiptError(t.transactions.scanReceiptPermissionDenied);
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: true,
+    });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    await scanFromImageAsset(picked.assets[0].base64, picked.assets[0].mimeType);
+  }
+
+  async function onScanReceiptText() {
+    setScanningReceipt(true);
+    setReceiptError(null);
+    const result = await analyzeReceiptWithGemini({
+      apiKey: geminiApiKey,
+      receiptText: receiptTextInput,
+      categories,
+      learnedRules: learnedCategoryRules,
+      history: transactions,
+      today: today(),
+    });
+    setScanningReceipt(false);
+    if (!result.ok) {
+      setReceiptError(result.error);
+      return;
+    }
+    applyScannedReceipt(result.value);
   }
 
   async function onSave() {
@@ -234,6 +344,179 @@ export default function TransactionFormScreen() {
               </Pressable>
             )}
           </View>
+
+          {/* Leitor de Nota Fiscal / Cupom Fiscal (Gastos) */}
+          {!isEditing && !isTransfer && type === 'expense' && (
+            <Card style={{ gap: spacing.sm }}>
+              <View
+                testID="receipt-scanner-card"
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                  <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="caption" style={{ color: colors.primary, fontWeight: '700', letterSpacing: 0.6 }}>
+                      {t.transactions.scanReceiptTitle}
+                    </Text>
+                    <Text variant="caption" color="textMuted">
+                      {t.transactions.scanReceiptSubtitle}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+                <Pressable
+                  testID="scan-receipt-camera-btn"
+                  disabled={scanningReceipt}
+                  onPress={onScanReceiptCamera}
+                  style={{
+                    flex: 1,
+                    minWidth: 96,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: colors.primary + '1F',
+                    borderWidth: 1,
+                    borderColor: colors.primary + '44',
+                  }}>
+                  <Ionicons name="camera-outline" size={16} color={colors.primary} />
+                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
+                    {t.transactions.scanReceiptCamera}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  testID="scan-receipt-gallery-btn"
+                  disabled={scanningReceipt}
+                  onPress={onScanReceiptGallery}
+                  style={{
+                    flex: 1,
+                    minWidth: 96,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: colors.primary + '1F',
+                    borderWidth: 1,
+                    borderColor: colors.primary + '44',
+                  }}>
+                  <Ionicons name="images-outline" size={16} color={colors.primary} />
+                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
+                    {t.transactions.scanReceiptGallery}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  testID="scan-receipt-paste-toggle"
+                  disabled={scanningReceipt}
+                  onPress={() => setShowReceiptPaste((v) => !v)}
+                  style={{
+                    flex: 1,
+                    minWidth: 96,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: showReceiptPaste ? colors.primary + '2E' : colors.surfaceRaised,
+                    borderWidth: 1,
+                    borderColor: showReceiptPaste ? colors.primary : colors.border,
+                  }}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={16}
+                    color={showReceiptPaste ? colors.primary : colors.text}
+                  />
+                  <Text
+                    variant="caption"
+                    style={{
+                      color: showReceiptPaste ? colors.primary : colors.text,
+                      fontWeight: '600',
+                    }}>
+                    {t.transactions.scanReceiptPasteToggle}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {showReceiptPaste && (
+                <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
+                  <TextField
+                    testID="receipt-text-input"
+                    value={receiptTextInput}
+                    onChangeText={setReceiptTextInput}
+                    placeholder={t.transactions.scanReceiptTextPlaceholder}
+                    multiline
+                    style={{ minHeight: 76, textAlignVertical: 'top' }}
+                  />
+                  <Button
+                    testID="extract-receipt-text-btn"
+                    label={t.transactions.scanReceiptExtractBtn}
+                    onPress={onScanReceiptText}
+                    loading={scanningReceipt}
+                    icon="sparkles"
+                  />
+                </View>
+              )}
+
+              {scanningReceipt && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: 2 }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text variant="caption" color="textMuted">
+                    {t.transactions.scanReceiptAnalyzing}
+                  </Text>
+                </View>
+              )}
+
+              {scannedReceipt && !scanningReceipt && (
+                <View
+                  testID="receipt-detected-banner"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    padding: spacing.sm,
+                    borderRadius: radius.md,
+                    backgroundColor: colors.income + '18',
+                    borderWidth: 1,
+                    borderColor: colors.income + '44',
+                  }}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.income} />
+                  <Text variant="caption" style={{ color: colors.income, flex: 1, fontWeight: '600' }}>
+                    {t.transactions.scanReceiptDetected(
+                      scannedReceipt.segmentLabel,
+                      scannedReceipt.amount.format(),
+                    )}
+                  </Text>
+                </View>
+              )}
+
+              {receiptError && !scanningReceipt && (
+                <View style={{ gap: 4 }}>
+                  <Text variant="caption" color="expense" testID="receipt-scan-error">
+                    {receiptError}
+                  </Text>
+                  {!geminiApiKey && (
+                    <Pressable onPress={() => router.push('/settings')} testID="configure-gemini-from-receipt">
+                      <Text
+                        variant="caption"
+                        style={{ color: colors.primary, textDecorationLine: 'underline' }}>
+                        {t.dashboard.askGeminiConfigureLink}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+            </Card>
+          )}
 
           <Field label={t.transactions.amountLabel} error={errors.amount}>
             <AmountInput value={amount} onChange={setAmount} accent={accent} autoFocus={!isEditing} invalid={!!errors.amount} />
