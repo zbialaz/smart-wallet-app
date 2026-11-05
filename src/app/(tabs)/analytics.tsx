@@ -20,10 +20,9 @@ import { hasEnoughHistory } from '@/domains/dashboard/trends';
 import { currentYearMonth, formatRelativeDate, today } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
-import { useCategoryBreakdown, useMonthSummary } from '@/store/selectors';
+import { useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
 import { Card, EmptyState, FadeIn, IconBadge, Screen } from '@/ui/components';
-import { DonutChart } from '@/ui/donut-chart';
 import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
 import {
   MonthlyInsightCard,
@@ -68,7 +67,6 @@ export default function AnalyticsScreen() {
   const evolution = useWallet((s) => s.monthlyEvolution);
 
   const summary = useMonthSummary();
-  const slices = useCategoryBreakdown();
 
   const [selectedCloudCategoryId, setSelectedCloudCategoryId] = useState<string | null>(null);
 
@@ -122,7 +120,7 @@ export default function AnalyticsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        {/* Cabeçalho Editorial */}
+        {/* Cabeçalho Humano e Direto */}
         <FadeIn style={{ gap: 4 }}>
           <Text variant="title">{t.dashboard.analyticsTitle}</Text>
           <Text variant="caption" color="textMuted">
@@ -131,88 +129,47 @@ export default function AnalyticsScreen() {
         </FadeIn>
 
         {/* Seletor de Mês */}
-        <FadeIn delay={40}>
+        <FadeIn delay={35}>
           <MonthSwitcher month={month} onChange={setMonth} />
         </FadeIn>
 
-        {/* Comparativo Mensal + Alertas + Resumo Inteligente com IA */}
-        <FadeIn delay={70} style={{ gap: spacing.md }}>
+        {/* Total Gasto no Mês + Ritmo Diário */}
+        <FadeIn delay={60} style={{ gap: spacing.sm }}>
           <SpendingComparison expense={summary.expense} />
-          <UnusualSpendingAlerts />
-          {transactions.length > 0 && <MonthlyInsightCard />}
+
+          {metrics.expenseCount > 0 && (
+            <View style={styles.kpiRow}>
+              <View
+                style={[
+                  styles.kpiCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}>
+                <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                  {t.dashboard.kpiDailyAvgLabel}
+                </Text>
+                <Text variant="bodyStrong" style={{ fontSize: 16 }}>
+                  {showMoney(metrics.dailyAverage)}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.kpiCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}>
+                <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                  {t.dashboard.kpiAvgTicketLabel}
+                </Text>
+                <Text variant="bodyStrong" style={{ fontSize: 16 }}>
+                  {showMoney(metrics.averagePerExpense)}
+                </Text>
+              </View>
+            </View>
+          )}
         </FadeIn>
 
-        {/* KPIs Rápidos do Mês */}
-        {metrics.expenseCount > 0 && (
-          <FadeIn delay={95} style={styles.kpiGrid}>
-            <View
-              style={[
-                styles.kpiCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}>
-              <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                {t.dashboard.kpiDailyAvgLabel}
-              </Text>
-              <Text variant="bodyStrong" style={{ fontSize: 16 }}>
-                {showMoney(metrics.dailyAverage)}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.kpiCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}>
-              <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                {t.dashboard.kpiAvgTicketLabel}
-              </Text>
-              <Text variant="bodyStrong" style={{ fontSize: 16 }}>
-                {showMoney(metrics.averagePerExpense)}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.kpiCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}>
-              <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                {t.dashboard.kpiSavingsRateLabel}
-              </Text>
-              <Text
-                variant="bodyStrong"
-                style={{
-                  fontSize: 16,
-                  color:
-                    metrics.savingsRatePercent === null
-                      ? colors.textMuted
-                      : metrics.savingsRatePercent >= 0
-                        ? colors.income
-                        : colors.expense,
-                }}>
-                {metrics.savingsRatePercent !== null ? `${metrics.savingsRatePercent}%` : '—'}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.kpiCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}>
-              <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                {t.dashboard.kpiExpensesCountLabel}
-              </Text>
-              <Text variant="bodyStrong" style={{ fontSize: 16 }}>
-                {metrics.expenseCount}
-              </Text>
-            </View>
-          </FadeIn>
-        )}
-
-        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
-
-        {/* NUVEM DE BOLAS DE CATEGORIAS (Circle Packing) */}
-        <FadeIn delay={120} style={styles.section}>
+        {/* 1. ONDE VOCÊ MAIS GASTOU — Nuvem de Bolas Proporcionais */}
+        <FadeIn delay={90} style={styles.section}>
           <View style={{ gap: 2 }}>
             <Text variant="label" color="textMuted" style={styles.sectionTitle}>
               {t.dashboard.categoryCloudTitle}
@@ -224,7 +181,7 @@ export default function AnalyticsScreen() {
 
           {packedCloud.bubbles.length === 0 ? (
             <EmptyState
-              icon="cloud-outline"
+              icon="pie-chart-outline"
               title={t.dashboard.noExpensesTitle}
               message={t.dashboard.noExpensesMessage}
             />
@@ -325,12 +282,12 @@ export default function AnalyticsScreen() {
                 </View>
               </View>
 
-              {/* Card de Inspeção da Bola Selecionada */}
+              {/* Detalhe da Categoria Selecionada */}
               {activeCloudItem && (
                 <Card
                   style={{
                     gap: spacing.sm,
-                    borderColor: activeCloudItem.color + '55',
+                    borderColor: getReadableAccent(activeCloudItem.color, isDark) + '55',
                     borderWidth: 1,
                   }}>
                   <View
@@ -358,7 +315,12 @@ export default function AnalyticsScreen() {
                     </View>
 
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text variant="bodyStrong" style={{ color: activeCloudItem.color, fontSize: 16 }}>
+                      <Text
+                        variant="bodyStrong"
+                        style={{
+                          color: getReadableAccent(activeCloudItem.color, isDark),
+                          fontSize: 16,
+                        }}>
                         {showMoney(activeCloudItem.total)}
                       </Text>
                       <Text variant="caption" color="textMuted">
@@ -391,12 +353,12 @@ export default function AnalyticsScreen() {
           )}
         </FadeIn>
 
-        {/* MAIORES GASTOS DO MÊS */}
+        {/* 2. MAIORES COMPRAS DO MÊS */}
         {topExpenses.length > 0 && (
           <>
             <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
 
-            <FadeIn delay={145} style={styles.section}>
+            <FadeIn delay={120} style={styles.section}>
               <Text variant="label" color="textMuted" style={styles.sectionTitle}>
                 {t.dashboard.topExpensesTitle}
               </Text>
@@ -486,35 +448,28 @@ export default function AnalyticsScreen() {
           </>
         )}
 
-        <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
-
-        {/* Gráfico de Rosca (Distribuição) */}
-        <FadeIn delay={170} style={styles.section}>
-          <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-            {t.dashboard.distribution}
-          </Text>
-
-          {slices.length > 0 ? (
-            <DonutChart slices={slices} total={summary.expense} />
-          ) : (
-            <EmptyState
-              icon="pie-chart-outline"
-              title={t.dashboard.noExpensesTitle}
-              message={t.dashboard.noExpensesMessage}
-            />
-          )}
-        </FadeIn>
-
-        {/* Evolução dos Gastos nos Últimos 6 Meses */}
+        {/* 3. EVOLUÇÃO DE GASTOS (6 MESES) */}
         {hasEnoughHistory(evolution) && (
           <>
             <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
 
-            <FadeIn delay={195} style={styles.section}>
+            <FadeIn delay={150} style={styles.section}>
               <Text variant="label" color="textMuted" style={styles.sectionTitle}>
                 {t.dashboard.evolutionTitle}
               </Text>
               <MonthlyEvolutionChart evolution={evolution} />
+            </FadeIn>
+          </>
+        )}
+
+        {/* 4. ALERTAS E RESUMO INTELIGENTE COM IA */}
+        {transactions.length > 0 && (
+          <>
+            <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
+
+            <FadeIn delay={175} style={{ gap: spacing.md }}>
+              <UnusualSpendingAlerts />
+              <MonthlyInsightCard />
             </FadeIn>
           </>
         )}
@@ -540,18 +495,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.2,
   },
-  kpiGrid: {
+  kpiRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   kpiCard: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    padding: spacing.md,
+    flex: 1,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    gap: 4,
+    gap: 2,
   },
   kpiLabel: {
     fontSize: 10,
