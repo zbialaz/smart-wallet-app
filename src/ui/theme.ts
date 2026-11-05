@@ -170,3 +170,11 @@ export type TypographyVariant = keyof typeof typography;
 /** Cor de destaque por tipo de transação (receita = verde sálvia, gasto = cereja terracota) */
 export const accentFor = (type: 'expense' | 'income') =>
   type === 'income' ? lightColors.income : lightColors.expense;
+
+export {
+  getColorLuminance,
+  getContrastForeground,
+  getReadableAccent,
+  isLightColor,
+  parseHexRgb,
+} from '@/shared/contrast';

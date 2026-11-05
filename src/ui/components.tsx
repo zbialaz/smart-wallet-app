@@ -22,7 +22,13 @@ import { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
 
 import { Text } from './text';
-import { radius, spacing, useTheme, type ThemeColors } from './theme';
+import {
+  getReadableAccent,
+  radius,
+  spacing,
+  useTheme,
+  type ThemeColors,
+} from './theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -195,9 +201,10 @@ export function Chip({
   color?: string;
   icon?: IconName;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const chipColor = color ?? colors.primary;
+  const readableAccent = getReadableAccent(chipColor, isDark);
 
   return (
     <Pressable
@@ -205,12 +212,12 @@ export function Chip({
       style={({ pressed }) => [
         styles.chip,
         selected && {
-          backgroundColor: chipColor + '26',
-          borderColor: chipColor,
+          backgroundColor: chipColor + '28',
+          borderColor: readableAccent,
         },
         pressed && { opacity: 0.75 },
       ]}>
-      {icon && <Ionicons name={icon} size={15} color={selected ? chipColor : colors.textMuted} />}
+      {icon && <Ionicons name={icon} size={15} color={selected ? readableAccent : colors.textMuted} />}
       <Text
         variant="caption"
         style={{
@@ -299,19 +306,22 @@ export function IconBadge({
   color: string;
   size?: number;
 }) {
+  const { isDark } = useTheme();
+  const readableIconColor = getReadableAccent(color, isDark);
+
   return (
     <View
       style={{
         width: size,
         height: size,
         borderRadius: size * 0.35, // Formato squircle moderno
-        backgroundColor: color + '22',
+        backgroundColor: color + '28',
         borderWidth: 1,
-        borderColor: color + '33',
+        borderColor: readableIconColor + '44',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-      <Ionicons name={icon} size={size * 0.48} color={color} />
+      <Ionicons name={icon} size={size * 0.48} color={readableIconColor} />
     </View>
   );
 }

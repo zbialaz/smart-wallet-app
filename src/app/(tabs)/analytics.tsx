@@ -33,7 +33,14 @@ import {
   UnusualSpendingAlerts,
 } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
-import { radius, spacing, usePrivacy, useTheme } from '@/ui/theme';
+import {
+  getContrastForeground,
+  getReadableAccent,
+  radius,
+  spacing,
+  usePrivacy,
+  useTheme,
+} from '@/ui/theme';
 import { MASKED_BALANCE } from '@/ui/wallet-pocket';
 
 function daysElapsedInMonth(selectedMonth: string): number {
@@ -50,7 +57,7 @@ function daysElapsedInMonth(selectedMonth: string): number {
 export default function AnalyticsScreen() {
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { language, t, tCategory } = useI18n();
   const { isBalanceHidden } = usePrivacy();
 
@@ -242,6 +249,8 @@ export default function AnalyticsScreen() {
                     const nameFontSize = Math.max(10, Math.min(15, Math.round(bubble.radius * 0.21)));
                     const pctFontSize = Math.max(10, Math.min(13, Math.round(bubble.radius * 0.19)));
                     const showAmountInside = bubble.radius >= 54;
+                    const fg = getContrastForeground(bubble.color);
+                    const readableColor = getReadableAccent(bubble.color, isDark);
 
                     return (
                       <Pressable
@@ -259,7 +268,7 @@ export default function AnalyticsScreen() {
                             backgroundColor: isSelected
                               ? bubble.color
                               : bubble.color + '24',
-                            borderColor: bubble.color,
+                            borderColor: isSelected ? fg.border : readableColor,
                             borderWidth: isSelected ? 3 : 1.8,
                             transform: [{ scale: pressed ? 0.94 : isSelected ? 1.03 : 1 }],
                           },
@@ -267,7 +276,7 @@ export default function AnalyticsScreen() {
                         <Ionicons
                           name={bubble.icon as never}
                           size={iconSize}
-                          color={isSelected ? '#FFFFFF' : bubble.color}
+                          color={isSelected ? fg.text : readableColor}
                         />
                         <Text
                           variant="bodyStrong"
@@ -277,7 +286,7 @@ export default function AnalyticsScreen() {
                           style={{
                             fontSize: nameFontSize,
                             lineHeight: nameFontSize + 3,
-                            color: isSelected ? '#FFFFFF' : colors.text,
+                            color: isSelected ? fg.text : colors.text,
                             textAlign: 'center',
                             paddingHorizontal: 6,
                           }}>
@@ -290,7 +299,7 @@ export default function AnalyticsScreen() {
                             fontSize: pctFontSize,
                             lineHeight: pctFontSize + 2,
                             fontWeight: '800',
-                            color: isSelected ? '#FFFFFFE6' : bubble.color,
+                            color: isSelected ? fg.textMuted : readableColor,
                           }}>
                           {Math.round(bubble.share * 100)}%
                         </Text>
@@ -304,7 +313,7 @@ export default function AnalyticsScreen() {
                               fontSize: 10,
                               lineHeight: 12,
                               fontWeight: '600',
-                              color: isSelected ? '#FFFFFFCC' : colors.textMuted,
+                              color: isSelected ? fg.textMuted : colors.textMuted,
                               paddingHorizontal: 8,
                             }}>
                             {showMoney(bubble.total)}

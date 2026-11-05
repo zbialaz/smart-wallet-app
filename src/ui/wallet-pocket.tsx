@@ -14,7 +14,13 @@ import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
 import { Text } from '@/ui/text';
-import { radius, spacing, usePrivacy, useTheme } from '@/ui/theme';
+import {
+  getContrastForeground,
+  radius,
+  spacing,
+  usePrivacy,
+  useTheme,
+} from '@/ui/theme';
 
 interface WalletPocketProps {
   consolidated: Money;
@@ -91,6 +97,7 @@ export function WalletPocket({
               contentContainerStyle={styles.cardsScrollContent}>
               {accounts.map((acc, index) => {
                 const { rot, y } = CARD_VARIATIONS[index % CARD_VARIATIONS.length];
+                const fg = getContrastForeground(acc.color);
 
                 return (
                   <View
@@ -109,29 +116,32 @@ export function WalletPocket({
                         {
                           width: cardWidth,
                           backgroundColor: acc.color,
+                          borderColor: fg.border,
                           transform: [{ scale: pressed ? 0.96 : 1 }],
                         },
                       ]}>
-                      <View style={styles.cardSheen} />
+                      <View style={[styles.cardSheen, { backgroundColor: fg.sheen }]} />
 
                       <View style={styles.cardHeaderRow}>
                         <Text
                           variant="caption"
-                          style={styles.cardName}
+                          style={[styles.cardName, { color: fg.text }]}
                           numberOfLines={1}
                           adjustsFontSizeToFit
                           minimumFontScale={0.8}>
                           {acc.name}
                         </Text>
-                        <View style={styles.cardChip}>
-                          <View style={styles.cardChipCore} />
+                        <View style={[styles.cardChip, { backgroundColor: fg.chipBg }]}>
+                          <View style={[styles.cardChipCore, { backgroundColor: fg.chipCore }]} />
                         </View>
                       </View>
 
                       <View style={styles.cardBalanceBox}>
-                        <Text style={styles.cardBalanceLabel}>{t.wallet.cardBalance}</Text>
+                        <Text style={[styles.cardBalanceLabel, { color: fg.textMuted }]}>
+                          {t.wallet.cardBalance}
+                        </Text>
                         <Text
-                          style={styles.cardBalanceValue}
+                          style={[styles.cardBalanceValue, { color: fg.text }]}
                           numberOfLines={1}
                           adjustsFontSizeToFit
                           minimumFontScale={0.75}>
