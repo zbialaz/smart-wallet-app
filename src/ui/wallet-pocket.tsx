@@ -246,31 +246,35 @@ export function WalletPocket({
 }
 
 const styles = StyleSheet.create({
-  container: {},
+  container: {
+    borderRadius: radius.xl,
+    backgroundColor: '#241208',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#180B04',
+        shadowOpacity: 0.26,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 8 },
+      },
+      android: { elevation: 6 },
+      default: {},
+    }),
+  },
   leatherMainShell: {
     borderRadius: radius.xl,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#4A2814',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#180B04',
-        shadowOpacity: 0.38,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 10 },
-      },
-      android: { elevation: 10 },
-      default: {},
-    }),
+    backgroundColor: '#241208',
   },
   leatherBacking: {
     paddingTop: 12,
     overflow: 'hidden',
+    backgroundColor: '#1E0E06',
   },
   leatherImage: {
     width: '100%',
     height: '100%',
-    borderRadius: radius.xl,
   },
   leatherDarkOverlay: {
     ...StyleSheet.absoluteFill,
@@ -301,16 +305,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.35)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.28,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: -2 },
-      },
-      android: { elevation: 4 },
-      default: {},
-    }),
   },
   cardSheen: {
     position: 'absolute',
@@ -386,28 +380,20 @@ const styles = StyleSheet.create({
     marginTop: -46,
     borderTopWidth: 2,
     borderTopColor: '#361B0B',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.45,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: -3 },
-      },
-      android: { elevation: 12 },
-      default: {},
-    }),
+    backgroundColor: '#261208',
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
   },
   frontFlapImage: {
     width: '100%',
     height: '100%',
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
   },
   frontPocketContent: {
     padding: spacing.xl,
     paddingTop: spacing.lg,
     gap: spacing.md,
     overflow: 'hidden',
+    backgroundColor: '#261208',
     borderBottomLeftRadius: radius.xl,
     borderBottomRightRadius: radius.xl,
   },
