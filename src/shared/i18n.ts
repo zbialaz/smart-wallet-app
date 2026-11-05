@@ -8,10 +8,10 @@ export const LANGUAGE_OPTIONS: {
   nativeName: string;
   flag: string;
 }[] = [
-  { code: 'pt', label: 'Português', nativeName: 'Português (BR)', flag: '🇧🇷' },
-  { code: 'en', label: 'English', nativeName: 'English (US)', flag: '🇺🇸' },
-  { code: 'es', label: 'Español', nativeName: 'Español', flag: '🇪🇸' },
-];
+    { code: 'pt', label: 'Português', nativeName: 'Português (BR)', flag: '🇧🇷' },
+    { code: 'en', label: 'English', nativeName: 'English (US)', flag: '🇺🇸' },
+    { code: 'es', label: 'Español', nativeName: 'Español', flag: '🇪🇸' },
+  ];
 
 /**
  * Tradução das categorias padrão por ID ou nome em português.
@@ -122,7 +122,7 @@ const pt = {
     unusualAlertTitle: 'ALERTA DE GASTO INCOMUM',
     unusualCategoryPace: (category: string, percent: number, current: string, average: string) =>
       `Atenção: seus gastos com ${category} (${current}) estão ${percent}% acima da sua média mensal (${average}).`,
-    askGeminiBtn: 'Analisar com Gemini IA',
+    askGeminiBtn: 'Analisar com IA',
     askGeminiPlaceholder: 'Pergunte algo sobre o mês (opcional)…',
     askGeminiConfigureLink: 'Configurar chave gratuita do Google Gemini',
     askGeminiBadge: 'GEMINI 2.5 FLASH',
@@ -375,7 +375,7 @@ const en: Translations = {
     unusualAlertTitle: 'UNUSUAL SPENDING ALERT',
     unusualCategoryPace: (category: string, percent: number, current: string, average: string) =>
       `Heads up: your spending on ${category} (${current}) is ${percent}% above your monthly average (${average}).`,
-    askGeminiBtn: 'Analyze with Gemini AI',
+    askGeminiBtn: 'Analyze with AI',
     askGeminiPlaceholder: 'Ask something about your month (optional)…',
     askGeminiConfigureLink: 'Configure free Google Gemini API key',
     askGeminiBadge: 'GEMINI 2.5 FLASH',
@@ -625,7 +625,7 @@ const es: Translations = {
     unusualAlertTitle: 'ALERTA DE GASTO INUSUAL',
     unusualCategoryPace: (category: string, percent: number, current: string, average: string) =>
       `Atención: tus gastos en ${category} (${current}) están un ${percent}% por encima de tu promedio mensual (${average}).`,
-    askGeminiBtn: 'Analizar con Gemini IA',
+    askGeminiBtn: 'Analizar con IA',
     askGeminiPlaceholder: 'Pregunta algo sobre tu mes (opcional)…',
     askGeminiConfigureLink: 'Configurar clave gratuita de Google Gemini',
     askGeminiBadge: 'GEMINI 2.5 FLASH',
