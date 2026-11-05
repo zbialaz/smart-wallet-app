@@ -49,6 +49,150 @@ export interface SpendingMetrics {
   savingsRatePercent: number | null;
 }
 
+export interface PackedCategoryBubble extends CategoryCloudItem {
+  /** Raio da bola em pixels (proporcional ao gasto). */
+  radius: number;
+  /** Diâmetro da bola (`radius * 2`). */
+  diameter: number;
+  /** Centro X dentro do container da nuvem. */
+  cx: number;
+  /** Centro Y dentro do container da nuvem. */
+  cy: number;
+  /** Posição `left` (`cx - radius`) para renderização absoluta. */
+  left: number;
+  /** Posição `top` (`cy - radius`) para renderização absoluta. */
+  top: number;
+}
+
+export interface CategoryBubbleLayout {
+  bubbles: PackedCategoryBubble[];
+  width: number;
+  height: number;
+}
+
+/**
+ * Empacota as categorias como BOLAS (círculos) em uma nuvem orgânica centralizada
+ * (Circle Packing): quanto maior o gasto da categoria, maior o diâmetro da bola.
+ * Garante que nenhuma bola se sobreponha às demais e que caiba na largura `maxWidth`.
+ */
+export function packCategoryBubbles(
+  items: ReadonlyArray<CategoryCloudItem>,
+  options?: {
+    maxWidth?: number;
+    minRadius?: number;
+    maxRadius?: number;
+    gap?: number;
+  },
+): CategoryBubbleLayout {
+  const maxWidth = options?.maxWidth ?? 330;
+  const minRadius = options?.minRadius ?? 34;
+  const maxRadius = options?.maxRadius ?? 66;
+  const gap = options?.gap ?? 6;
+
+  if (items.length === 0) {
+    return { bubbles: [], width: maxWidth, height: 0 };
+  }
+
+  // Calcula o raio de cada bola proporcionalmente ao peso relativo (usando curva suave sqrt)
+  const radii = items.map((item) => {
+    const clamped = Math.max(0, Math.min(1, item.relativeWeight));
+    const scale = Math.sqrt(clamped);
+    return Math.round(minRadius + scale * (maxRadius - minRadius));
+  });
+
+  const placed: { cx: number; cy: number; r: number }[] = [];
+  const halfMaxWidth = maxWidth / 2;
+
+  for (let i = 0; i < items.length; i++) {
+    const r = radii[i];
+
+    if (i === 0) {
+      placed.push({ cx: 0, cy: 0, r });
+      continue;
+    }
+
+    // Busca em espiral áurea a posição mais próxima do centro (0,0) sem colisão
+    // e respeitando os limites horizontais da tela (`maxWidth`).
+    let bestX = 0;
+    let bestY = 0;
+    let found = false;
+
+    const minStartDist = placed[0].r + r + gap;
+    const goldenAngle = 2.399963229728653; // ~137.5 graus em radianos
+
+    for (let step = 0; step < 2400; step++) {
+      const angle = step * goldenAngle;
+      const dist = minStartDist + step * 0.45;
+      // Leve compressão horizontal quando o candidato passa da largura máxima
+      const candidateX = Math.cos(angle) * dist;
+      const candidateY = Math.sin(angle) * dist;
+
+      if (Math.abs(candidateX) + r > halfMaxWidth) {
+        continue;
+      }
+
+      let collides = false;
+      for (const p of placed) {
+        const dx = candidateX - p.cx;
+        const dy = candidateY - p.cy;
+        const minDist = r + p.r + gap;
+        if (dx * dx + dy * dy < minDist * minDist) {
+          collides = true;
+          break;
+        }
+      }
+
+      if (!collides) {
+        bestX = candidateX;
+        bestY = candidateY;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      // Fallback vertical abaixo da bola mais baixa já posicionada
+      const lowestBottom = Math.max(...placed.map((p) => p.cy + p.r));
+      bestX = 0;
+      bestY = lowestBottom + gap + r;
+    }
+
+    placed.push({ cx: bestX, cy: bestY, r });
+  }
+
+  const minX = Math.min(...placed.map((p) => p.cx - p.r));
+  const maxX = Math.max(...placed.map((p) => p.cx + p.r));
+  const minY = Math.min(...placed.map((p) => p.cy - p.r));
+  const maxY = Math.max(...placed.map((p) => p.cy + p.r));
+
+  const contentWidth = maxX - minX;
+  const contentHeight = maxY - minY;
+  const layoutWidth = Math.max(maxWidth, Math.ceil(contentWidth));
+  const offsetX = (layoutWidth - contentWidth) / 2 - minX;
+  const offsetY = -minY;
+
+  const bubbles: PackedCategoryBubble[] = items.map((item, idx) => {
+    const p = placed[idx];
+    const cx = Math.round(p.cx + offsetX);
+    const cy = Math.round(p.cy + offsetY);
+    return {
+      ...item,
+      radius: p.r,
+      diameter: p.r * 2,
+      cx,
+      cy,
+      left: cx - p.r,
+      top: cy - p.r,
+    };
+  });
+
+  return {
+    bubbles,
+    width: layoutWidth,
+    height: Math.ceil(contentHeight),
+  };
+}
+
 function resolveTier(relativeWeight: number): CloudTier {
   if (relativeWeight >= 0.75) return 'xl';
   if (relativeWeight >= 0.45) return 'lg';

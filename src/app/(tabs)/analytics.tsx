@@ -1,13 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import {
   buildCategoryCloud,
   buildTopExpenses,
   computeSpendingMetrics,
-  type CloudTier,
+  packCategoryBubbles,
 } from '@/domains/dashboard/analytics';
 import { formatShare } from '@/domains/dashboard/summary';
 import { hasEnoughHistory } from '@/domains/dashboard/trends';
@@ -30,46 +36,6 @@ import { Text } from '@/ui/text';
 import { radius, spacing, usePrivacy, useTheme } from '@/ui/theme';
 import { MASKED_BALANCE } from '@/ui/wallet-pocket';
 
-const TIER_STYLES: Record<
-  CloudTier,
-  {
-    paddingVertical: number;
-    paddingHorizontal: number;
-    fontSize: number;
-    amountSize: number;
-    iconSize: number;
-  }
-> = {
-  xl: {
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    fontSize: 16,
-    amountSize: 15,
-    iconSize: 34,
-  },
-  lg: {
-    paddingVertical: 11,
-    paddingHorizontal: 15,
-    fontSize: 14,
-    amountSize: 13,
-    iconSize: 30,
-  },
-  md: {
-    paddingVertical: 9,
-    paddingHorizontal: 13,
-    fontSize: 13,
-    amountSize: 12,
-    iconSize: 26,
-  },
-  sm: {
-    paddingVertical: 7,
-    paddingHorizontal: 11,
-    fontSize: 12,
-    amountSize: 11,
-    iconSize: 22,
-  },
-};
-
 function daysElapsedInMonth(selectedMonth: string): number {
   const currentYm = currentYearMonth();
   if (selectedMonth === currentYm) {
@@ -83,6 +49,7 @@ function daysElapsedInMonth(selectedMonth: string): number {
 
 export default function AnalyticsScreen() {
   const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
   const { colors } = useTheme();
   const { language, t, tCategory } = useI18n();
   const { isBalanceHidden } = usePrivacy();
@@ -101,6 +68,19 @@ export default function AnalyticsScreen() {
   const cloudItems = useMemo(
     () => buildCategoryCloud(transactions, categories),
     [transactions, categories],
+  );
+
+  const cloudCanvasWidth = Math.min(380, Math.max(270, windowWidth - spacing.xl * 2 - 24));
+
+  const packedCloud = useMemo(
+    () =>
+      packCategoryBubbles(cloudItems, {
+        maxWidth: cloudCanvasWidth,
+        minRadius: 36,
+        maxRadius: 72,
+        gap: 8,
+      }),
+    [cloudItems, cloudCanvasWidth],
   );
 
   const topExpenses = useMemo(
@@ -224,7 +204,7 @@ export default function AnalyticsScreen() {
 
         <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
 
-        {/* NUVEM DE CATEGORIAS */}
+        {/* NUVEM DE BOLAS DE CATEGORIAS (Circle Packing) */}
         <FadeIn delay={120} style={styles.section}>
           <View style={{ gap: 2 }}>
             <Text variant="label" color="textMuted" style={styles.sectionTitle}>
@@ -235,7 +215,7 @@ export default function AnalyticsScreen() {
             </Text>
           </View>
 
-          {cloudItems.length === 0 ? (
+          {packedCloud.bubbles.length === 0 ? (
             <EmptyState
               icon="cloud-outline"
               title={t.dashboard.noExpensesTitle}
@@ -243,75 +223,100 @@ export default function AnalyticsScreen() {
             />
           ) : (
             <View style={{ gap: spacing.md }}>
-              <View testID="category-cloud" style={styles.cloudWrap}>
-                {cloudItems.map((item, idx) => {
-                  const tierStyle = TIER_STYLES[item.tier];
-                  const isSelected = activeCloudItem?.categoryId === item.categoryId;
-                  const isTop = idx === 0;
-                  const label = tCategory(item.categoryId, item.name);
+              <View
+                testID="category-cloud"
+                style={[
+                  styles.bubbleCanvasCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}>
+                <View
+                  style={{
+                    width: packedCloud.width,
+                    height: packedCloud.height,
+                    position: 'relative',
+                  }}>
+                  {packedCloud.bubbles.map((bubble) => {
+                    const isSelected = activeCloudItem?.categoryId === bubble.categoryId;
+                    const label = tCategory(bubble.categoryId, bubble.name);
+                    const iconSize = Math.max(16, Math.round(bubble.radius * 0.36));
+                    const nameFontSize = Math.max(10, Math.min(15, Math.round(bubble.radius * 0.21)));
+                    const pctFontSize = Math.max(10, Math.min(13, Math.round(bubble.radius * 0.19)));
+                    const showAmountInside = bubble.radius >= 54;
 
-                  return (
-                    <Pressable
-                      key={item.categoryId}
-                      testID={`cloud-bubble-${item.categoryId}`}
-                      onPress={() => setSelectedCloudCategoryId(item.categoryId)}
-                      style={({ pressed }) => [
-                        styles.cloudBubble,
-                        {
-                          paddingVertical: tierStyle.paddingVertical,
-                          paddingHorizontal: tierStyle.paddingHorizontal,
-                          backgroundColor: isSelected
-                            ? item.color + '26'
-                            : item.color + '14',
-                          borderColor: isSelected ? item.color : item.color + '45',
-                          borderWidth: isSelected || isTop ? 1.8 : 1,
-                          transform: [{ scale: pressed ? 0.97 : 1 }],
-                        },
-                      ]}>
-                      <IconBadge
-                        icon={item.icon as never}
-                        color={item.color}
-                        size={tierStyle.iconSize}
-                      />
-                      <View style={{ gap: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          {isTop && (
-                            <View
-                              style={{
-                                paddingHorizontal: 5,
-                                paddingVertical: 1,
-                                borderRadius: radius.pill,
-                                backgroundColor: item.color,
-                              }}>
-                              <Text
-                                variant="caption"
-                                style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>
-                                #1
-                              </Text>
-                            </View>
-                          )}
-                          <Text
-                            variant="bodyStrong"
-                            style={{ fontSize: tierStyle.fontSize, color: colors.text }}>
-                            {label}
-                          </Text>
-                        </View>
+                    return (
+                      <Pressable
+                        key={bubble.categoryId}
+                        testID={`cloud-bubble-${bubble.categoryId}`}
+                        onPress={() => setSelectedCloudCategoryId(bubble.categoryId)}
+                        style={({ pressed }) => [
+                          styles.circleBubble,
+                          {
+                            left: bubble.left,
+                            top: bubble.top,
+                            width: bubble.diameter,
+                            height: bubble.diameter,
+                            borderRadius: bubble.radius,
+                            backgroundColor: isSelected
+                              ? bubble.color
+                              : bubble.color + '24',
+                            borderColor: bubble.color,
+                            borderWidth: isSelected ? 3 : 1.8,
+                            transform: [{ scale: pressed ? 0.94 : isSelected ? 1.03 : 1 }],
+                          },
+                        ]}>
+                        <Ionicons
+                          name={bubble.icon as never}
+                          size={iconSize}
+                          color={isSelected ? '#FFFFFF' : bubble.color}
+                        />
+                        <Text
+                          variant="bodyStrong"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                          style={{
+                            fontSize: nameFontSize,
+                            lineHeight: nameFontSize + 3,
+                            color: isSelected ? '#FFFFFF' : colors.text,
+                            textAlign: 'center',
+                            paddingHorizontal: 6,
+                          }}>
+                          {label}
+                        </Text>
                         <Text
                           variant="caption"
+                          numberOfLines={1}
                           style={{
-                            fontSize: tierStyle.amountSize,
-                            color: item.color,
-                            fontWeight: '700',
+                            fontSize: pctFontSize,
+                            lineHeight: pctFontSize + 2,
+                            fontWeight: '800',
+                            color: isSelected ? '#FFFFFFE6' : bubble.color,
                           }}>
-                          {showMoney(item.total)} • {formatShare(item.share)}
+                          {Math.round(bubble.share * 100)}%
                         </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
+                        {showAmountInside && (
+                          <Text
+                            variant="caption"
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.7}
+                            style={{
+                              fontSize: 10,
+                              lineHeight: 12,
+                              fontWeight: '600',
+                              color: isSelected ? '#FFFFFFCC' : colors.textMuted,
+                              paddingHorizontal: 8,
+                            }}>
+                            {showMoney(bubble.total)}
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
 
-              {/* Card de Inspeção da Categoria Selecionada na Nuvem */}
+              {/* Card de Inspeção da Bola Selecionada */}
               {activeCloudItem && (
                 <Card
                   style={{
@@ -543,17 +548,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1,
   },
-  cloudWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  bubbleCanvasCard: {
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  cloudBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  circleBubble: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    padding: 6,
   },
   topExpenseCard: {
     padding: spacing.md,
@@ -574,4 +583,3 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
-

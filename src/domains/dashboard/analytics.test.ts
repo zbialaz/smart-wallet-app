@@ -8,6 +8,7 @@ import {
   buildCategoryCloud,
   buildTopExpenses,
   computeSpendingMetrics,
+  packCategoryBubbles,
 } from './analytics';
 
 function makeTx(
@@ -91,6 +92,31 @@ describe('Analytics Domain (buildCategoryCloud, buildTopExpenses, computeSpendin
     expect(metrics.dailyAverage.cents).toBe(16500);
     // Receita R$ 3.000,00 - Gasto R$ 1.650,00 = 45% poupado
     expect(metrics.savingsRatePercent).toBe(45);
+  });
+
+  it('empacota as categorias em bolas circulares proporcionais sem sobreposição (packCategoryBubbles)', () => {
+    const cloud = buildCategoryCloud(sampleTransactions, DEFAULT_CATEGORIES);
+    const packed = packCategoryBubbles(cloud, {
+      maxWidth: 320,
+      minRadius: 34,
+      maxRadius: 68,
+      gap: 6,
+    });
+
+    expect(packed.bubbles).toHaveLength(3);
+    // Quanto maior o gasto da categoria, maior a bola
+    expect(packed.bubbles[0].diameter).toBeGreaterThan(packed.bubbles[1].diameter);
+    expect(packed.bubbles[1].diameter).toBeGreaterThan(packed.bubbles[2].diameter);
+
+    // Nenhuma bola se sobrepõe às outras
+    for (let i = 0; i < packed.bubbles.length; i++) {
+      for (let j = i + 1; j < packed.bubbles.length; j++) {
+        const a = packed.bubbles[i];
+        const b = packed.bubbles[j];
+        const dist = Math.hypot(a.cx - b.cx, a.cy - b.cy);
+        expect(dist).toBeGreaterThanOrEqual(a.radius + b.radius);
+      }
+    }
   });
 });
 
