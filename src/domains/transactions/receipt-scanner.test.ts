@@ -179,3 +179,4 @@ describe('Leitor de Nota Fiscal / Cupom Fiscal (receipt-scanner)', () => {
     expect(result.value.source).toBe('local');
   });
 });
+

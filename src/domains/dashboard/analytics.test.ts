@@ -93,3 +93,4 @@ describe('Analytics Domain (buildCategoryCloud, buildTopExpenses, computeSpendin
     expect(metrics.savingsRatePercent).toBe(45);
   });
 });
+

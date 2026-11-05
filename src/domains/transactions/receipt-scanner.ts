@@ -745,3 +745,4 @@ export async function analyzeReceiptWithGemini(params: {
     return fail(err instanceof Error ? err.message : 'Falha ao analisar a nota fiscal');
   }
 }
+
