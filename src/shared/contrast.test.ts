@@ -33,3 +33,4 @@ describe('Contraste Automático de Cores (Banco do Brasil, Carteira, Nubank, etc
     expect(getReadableAccent('#F8D117', true)).toBe('#F8D117');
   });
 });
+
