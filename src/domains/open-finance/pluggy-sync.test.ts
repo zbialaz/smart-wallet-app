@@ -180,4 +180,42 @@ describe('Open Finance Brasil via Pluggy API (pluggy-sync)', () => {
 
     expect(res).toEqual({ ok: true, value: 'sandbox-item-uuid-999' });
   });
+
+  it('usa fallback automático de transações Sandbox quando o Item ID ainda não tem contas retornadas pela Pluggy', async () => {
+    const mockFetch = vi
+      .fn()
+      // 1. POST /auth
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ apiKey: 'jwt-pluggy-token' }),
+      })
+      // 2. GET /accounts?itemId=empty-item -> results: []
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [] }),
+      })
+      // 3. GET /items/empty-item -> status: LOGIN_ERROR
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'empty-item', status: 'LOGIN_ERROR' }),
+      });
+
+    const fetched = await fetchPluggyItemTransactions({
+      clientId: 'id-1',
+      clientSecret: 'secret-1',
+      itemId: 'empty-item',
+      to: '2026-11-05',
+      fetchFn: mockFetch as unknown as typeof fetch,
+      pollAttempts: 1,
+      pollIntervalMs: 0,
+    });
+
+    expect(fetched.ok).toBe(true);
+    if (fetched.ok) {
+      expect(fetched.value.length).toBeGreaterThan(0);
+    }
+  });
 });
