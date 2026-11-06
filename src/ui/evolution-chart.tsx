@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import type { CategorySlice } from '@/domains/dashboard/summary';
 import { formatShare } from '@/domains/dashboard/summary';
 import {
+  compareExpense,
   isExpenseIncrease,
   maxExpenseCents,
   type MonthlyTotals,
@@ -58,35 +59,52 @@ export function MonthlyEvolutionChart({ evolution }: { evolution: MonthlyTotals[
 
   return (
     <View testID="monthly-evolution-chart" style={{ gap: spacing.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, height: BAR_AREA_HEIGHT + 34 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, height: BAR_AREA_HEIGHT + 52 }}>
         {evolution.map((m, index) => {
           const isCurrent = index === lastIndex;
           const isSelected = m.month === selectedMonth;
-          const increased = isCurrent && isExpenseIncrease(evolution, index);
+          const increased = isExpenseIncrease(evolution, index);
+          const prev = index > 0 ? evolution[index - 1] : null;
+          const stepCmp = prev ? compareExpense(m.expense, prev.expense) : { kind: 'no-data' as const };
           const height =
             max > 0 && m.expense.isPositive()
               ? Math.max(MIN_BAR_HEIGHT, Math.round((m.expense.cents / max) * BAR_AREA_HEIGHT))
               : MIN_BAR_HEIGHT;
 
-          const barColor = increased
-            ? colors.expense
-            : isCurrent
-              ? colors.primary
-              : colors.textFaint;
+          const barColor =
+            isCurrent && increased
+              ? colors.expense
+              : isCurrent
+                ? colors.primary
+                : increased
+                  ? colors.expense + '99'
+                  : colors.primary + '77';
 
           return (
             <Pressable
               key={m.month}
               testID={`evolution-bar-${m.month}`}
               onPress={() => onSelect(m.month)}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+              {stepCmp.kind === 'up' || stepCmp.kind === 'down' ? (
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{
+                    fontSize: 9,
+                    fontWeight: '700',
+                    color: stepCmp.kind === 'up' ? colors.expense : colors.income,
+                  }}>
+                  {stepCmp.kind === 'up' ? `↑${stepCmp.percent}%` : `↓${stepCmp.percent}%`}
+                </Text>
+              ) : null}
               <View
                 style={{
                   width: '72%',
                   height,
                   borderRadius: radius.sm,
-                  backgroundColor: barColor,
-                  opacity: selectedMonth && !isSelected ? 0.4 : m.expense.isPositive() ? 1 : 0.35,
+                  backgroundColor: m.expense.isPositive() ? barColor : colors.textFaint,
+                  opacity: selectedMonth && !isSelected ? 0.4 : m.expense.isPositive() ? 1 : 0.3,
                   borderWidth: isSelected ? 2 : 0,
                   borderColor: colors.text,
                 }}

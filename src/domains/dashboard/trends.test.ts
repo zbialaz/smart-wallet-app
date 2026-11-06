@@ -5,6 +5,7 @@ import { Money } from '@/shared/money';
 import {
   buildMonthlyEvolution,
   compareExpense,
+  computeMultiMonthSummary,
   hasEnoughHistory,
   isExpenseIncrease,
   maxExpenseCents,
@@ -95,5 +96,20 @@ describe('US-014 — evolução mensal', () => {
   it('maxExpenseCents devolve o maior gasto da janela (0 se vazia)', () => {
     expect(maxExpenseCents(window([1000, 4000, 2500]))).toBe(4000);
     expect(maxExpenseCents([])).toBe(0);
+  });
+
+  it('computeMultiMonthSummary calcula média mensal, pico, menor mês e variação mês a mês', () => {
+    const w = window([0, 20000, 30000, 25000]);
+    const summary = computeMultiMonthSummary(w);
+
+    // Média dos 3 meses ativos: (200 + 300 + 250) / 3 = R$ 250,00
+    expect(summary.averageExpense.cents).toBe(25000);
+    expect(summary.highestMonth?.month).toBe('2026-03');
+    expect(summary.lowestMonth?.month).toBe('2026-02');
+
+    // Mês 3 (30000) vs Mês 2 (20000) -> subiu 50%
+    expect(summary.steps[2].vsPrevious).toEqual({ kind: 'up', percent: 50 });
+    // Mês 4 (25000) vs Mês 3 (30000) -> caiu 17%
+    expect(summary.steps[3].vsPrevious).toEqual({ kind: 'down', percent: 17 });
   });
 });

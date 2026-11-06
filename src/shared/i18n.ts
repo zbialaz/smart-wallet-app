@@ -152,6 +152,11 @@ const pt = {
     subscriptionsAnnualLabel: 'Em 1 ano (12x)',
     subscriptionsShareNote: (pct: number, count: number) =>
       `${count} ${count === 1 ? 'custo recorrente consome' : 'custos recorrentes consomem'} ${pct}% dos gastos`,
+    viewThisMonth: 'Neste mês',
+    viewOverMonths: 'Ao longo dos meses',
+    multiMonthAvgLabel: 'MÉDIA MENSAL',
+    multiMonthHighestLabel: 'PICO DE GASTO',
+    multiMonthHistoryTitle: 'COMPARATIVO MÊS A MÊS',
   },
   wallet: {
     cardBalance: 'SALDO',
@@ -468,6 +473,11 @@ const en: Translations = {
     subscriptionsAnnualLabel: 'Per year (12x)',
     subscriptionsShareNote: (pct: number, count: number) =>
       `${count} ${count === 1 ? 'recurring cost takes' : 'recurring costs take'} ${pct}% of spending`,
+    viewThisMonth: 'This month',
+    viewOverMonths: 'Over the months',
+    multiMonthAvgLabel: 'MONTHLY AVG',
+    multiMonthHighestLabel: 'PEAK MONTH',
+    multiMonthHistoryTitle: 'MONTH-BY-MONTH COMPARISON',
   },
   wallet: {
     cardBalance: 'BALANCE',
@@ -781,6 +791,11 @@ const es: Translations = {
     subscriptionsAnnualLabel: 'En 1 año (12x)',
     subscriptionsShareNote: (pct: number, count: number) =>
       `${count} ${count === 1 ? 'gasto recurrente consume' : 'gastos recurrentes consumen'} ${pct}% del total`,
+    viewThisMonth: 'Este mes',
+    viewOverMonths: 'A lo largo de los meses',
+    multiMonthAvgLabel: 'PROMEDIO MENSUAL',
+    multiMonthHighestLabel: 'PICO DE GASTO',
+    multiMonthHistoryTitle: 'COMPARACIÓN MES A MES',
   },
   wallet: {
     cardBalance: 'SALDO',

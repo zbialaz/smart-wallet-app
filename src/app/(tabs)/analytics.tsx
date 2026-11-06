@@ -18,9 +18,16 @@ import {
   packCategoryBubbles,
 } from '@/domains/dashboard/analytics';
 import { formatShare } from '@/domains/dashboard/summary';
-import { hasEnoughHistory } from '@/domains/dashboard/trends';
+import { computeMultiMonthSummary, hasEnoughHistory } from '@/domains/dashboard/trends';
 import { daysInMonth } from '@/domains/transactions/recurring';
-import { currentYearMonth, formatRelativeDate, today, type YearMonth } from '@/shared/date';
+import {
+  currentYearMonth,
+  formatMonthShort,
+  formatRelativeDate,
+  formatYearMonth,
+  today,
+  type YearMonth,
+} from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { useMonthSummary } from '@/store/selectors';
@@ -73,11 +80,14 @@ export default function AnalyticsScreen() {
 
   const summary = useMonthSummary();
 
+  const [viewMode, setViewMode] = useState<'month' | 'months'>('month');
   const [selectedCloudCategoryId, setSelectedCloudCategoryId] = useState<string | null>(null);
 
   const isCurrentMonth = month === currentYearMonth();
   const elapsedDays = daysElapsedInMonth(month);
   const totalMonthDays = daysInMonth(month as YearMonth);
+
+  const multiMonth = useMemo(() => computeMultiMonthSummary(evolution), [evolution]);
 
   const projection = useMemo(
     () =>
@@ -150,28 +160,77 @@ export default function AnalyticsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        {/* Cabeçalho Limpo + Seletor de Mês */}
-        <FadeIn style={{ gap: spacing.sm }}>
+        {/* Cabeçalho Limpo + Alternador "Neste mês" vs "Ao longo dos meses" */}
+        <FadeIn style={{ gap: spacing.md }}>
           <Text variant="title">{t.dashboard.analyticsTitle}</Text>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              backgroundColor: colors.surface,
+              borderRadius: radius.md,
+              padding: 4,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}>
+            <Pressable
+              testID="analytics-mode-month"
+              onPress={() => setViewMode('month')}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: spacing.sm + 2,
+                borderRadius: radius.sm,
+                backgroundColor: viewMode === 'month' ? colors.primary + '24' : 'transparent',
+              }}>
+              <Text
+                variant="bodyStrong"
+                style={{
+                  fontSize: 13,
+                  color: viewMode === 'month' ? colors.primary : colors.textMuted,
+                }}>
+                {t.dashboard.viewThisMonth}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              testID="analytics-mode-months"
+              onPress={() => setViewMode('months')}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: spacing.sm + 2,
+                borderRadius: radius.sm,
+                backgroundColor: viewMode === 'months' ? colors.primary + '24' : 'transparent',
+              }}>
+              <Text
+                variant="bodyStrong"
+                style={{
+                  fontSize: 13,
+                  color: viewMode === 'months' ? colors.primary : colors.textMuted,
+                }}>
+                {t.dashboard.viewOverMonths}
+              </Text>
+            </Pressable>
+          </View>
+
           <MonthSwitcher month={month} onChange={setMonth} />
         </FadeIn>
 
-        {/* Resumo Enxuto: Total do Mês + Média Diária e Projeção em uma única linha */}
-        <FadeIn delay={50} style={{ gap: spacing.sm }}>
-          <SpendingComparison expense={summary.expense} />
-
-          {metrics.expenseCount > 0 && (
-            <View testID="month-projection-card" style={styles.kpiRow}>
+        {viewMode === 'months' ? (
+          /* VISÃO AO LONGO DOS MESES — Comparativo histórico, tendência de alta/queda e média */
+          <FadeIn delay={40} style={{ gap: spacing.xl }}>
+            <View style={styles.kpiRow}>
               <View
                 style={[
                   styles.kpiCard,
                   { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}>
                 <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                  {t.dashboard.kpiDailyAvgLabel}
+                  {t.dashboard.multiMonthAvgLabel}
                 </Text>
                 <Text variant="bodyStrong" style={{ fontSize: 16 }}>
-                  {showMoney(metrics.dailyAverage)}
+                  {showMoney(multiMonth.averageExpense)}
                 </Text>
               </View>
 
@@ -181,29 +240,155 @@ export default function AnalyticsScreen() {
                   { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}>
                 <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                  {isCurrentMonth
-                    ? t.dashboard.projectionEstimatedLabel.toUpperCase()
-                    : t.dashboard.kpiAvgTicketLabel}
+                  {t.dashboard.multiMonthHighestLabel}
                 </Text>
-                <Text
-                  variant="bodyStrong"
-                  style={{
-                    fontSize: 16,
-                    color:
-                      isCurrentMonth && projection.budgetStatus === 'exceeded'
-                        ? colors.expense
-                        : isCurrentMonth && projection.budgetStatus === 'within'
-                          ? colors.income
-                          : colors.text,
-                  }}>
-                  {isCurrentMonth
-                    ? showMoney(projection.projectedTotal)
-                    : showMoney(metrics.averagePerExpense)}
+                <Text variant="bodyStrong" style={{ fontSize: 16 }}>
+                  {multiMonth.highestMonth
+                    ? `${showMoney(multiMonth.highestMonth.expense)} (${formatMonthShort(multiMonth.highestMonth.month, language)})`
+                    : showMoney(summary.expense)}
                 </Text>
               </View>
             </View>
-          )}
-        </FadeIn>
+
+            {/* Gráfico de 6 meses sempre visível nesta aba */}
+            <Card style={{ gap: spacing.md }}>
+              <Text variant="label" color="textMuted" style={styles.sectionTitle}>
+                {t.dashboard.evolutionTitle}
+              </Text>
+              <MonthlyEvolutionChart evolution={evolution} />
+            </Card>
+
+            {/* Lista Comparativa Mês a Mês (Mais recente primeiro) */}
+            <View style={styles.section}>
+              <Text variant="label" color="textMuted" style={styles.sectionTitle}>
+                {t.dashboard.multiMonthHistoryTitle}
+              </Text>
+
+              <View style={{ gap: spacing.sm }}>
+                {[...multiMonth.steps].reverse().map((step) => {
+                  const isSelectedMonth = step.month === month;
+                  const cmp = step.vsPrevious;
+                  const badgeColor =
+                    cmp.kind === 'up'
+                      ? colors.expense
+                      : cmp.kind === 'down'
+                        ? colors.income
+                        : colors.textMuted;
+
+                  return (
+                    <Pressable
+                      key={step.month}
+                      testID={`month-step-${step.month}`}
+                      onPress={() => {
+                        setMonth(step.month);
+                        setViewMode('month');
+                      }}
+                      style={[
+                        styles.topExpenseCard,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: isSelectedMonth ? colors.primary : colors.border,
+                        },
+                      ]}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: spacing.md,
+                        }}>
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text variant="bodyStrong">
+                            {formatYearMonth(step.month, language)}
+                          </Text>
+                          {cmp.kind === 'up' && (
+                            <Text variant="caption" style={{ color: badgeColor, fontWeight: '600' }}>
+                              {t.dashboard.compareUp(cmp.percent)}
+                            </Text>
+                          )}
+                          {cmp.kind === 'down' && (
+                            <Text variant="caption" style={{ color: badgeColor, fontWeight: '600' }}>
+                              {t.dashboard.compareDown(cmp.percent)}
+                            </Text>
+                          )}
+                          {cmp.kind === 'same' && (
+                            <Text variant="caption" color="textMuted">
+                              {t.dashboard.compareSame}
+                            </Text>
+                          )}
+                        </View>
+
+                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                          <Text
+                            variant="bodyStrong"
+                            style={{
+                              color: step.expense.isPositive() ? colors.text : colors.textMuted,
+                            }}>
+                            {showMoney(step.expense)}
+                          </Text>
+                          {step.income.isPositive() && (
+                            <Text variant="caption" style={{ color: colors.income, fontSize: 11 }}>
+                              + {showMoney(step.income)}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </FadeIn>
+        ) : (
+          <>
+            {/* Resumo Enxuto: Total do Mês + Média Diária e Projeção em uma única linha */}
+            <FadeIn delay={50} style={{ gap: spacing.sm }}>
+              <SpendingComparison expense={summary.expense} />
+
+              {metrics.expenseCount > 0 && (
+                <View testID="month-projection-card" style={styles.kpiRow}>
+                  <View
+                    style={[
+                      styles.kpiCard,
+                      { backgroundColor: colors.surface, borderColor: colors.border },
+                    ]}>
+                    <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                      {t.dashboard.kpiDailyAvgLabel}
+                    </Text>
+                    <Text variant="bodyStrong" style={{ fontSize: 16 }}>
+                      {showMoney(metrics.dailyAverage)}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.kpiCard,
+                      { backgroundColor: colors.surface, borderColor: colors.border },
+                    ]}>
+                    <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                      {isCurrentMonth
+                        ? t.dashboard.projectionEstimatedLabel.toUpperCase()
+                        : t.dashboard.kpiAvgTicketLabel}
+                    </Text>
+                    <Text
+                      variant="bodyStrong"
+                      style={{
+                        fontSize: 16,
+                        color:
+                          isCurrentMonth && projection.budgetStatus === 'exceeded'
+                            ? colors.expense
+                            : isCurrentMonth && projection.budgetStatus === 'within'
+                              ? colors.income
+                              : colors.text,
+                      }}>
+                      {isCurrentMonth
+                        ? showMoney(projection.projectedTotal)
+                        : showMoney(metrics.averagePerExpense)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </FadeIn>
 
         {/* 1. ONDE VOCÊ MAIS GASTOU — Nuvem de Bolas Proporcionais */}
         <FadeIn delay={80} style={styles.section}>
@@ -527,21 +712,7 @@ export default function AnalyticsScreen() {
           </>
         )}
 
-        {/* 3. EVOLUÇÃO DE GASTOS (6 MESES) */}
-        {hasEnoughHistory(evolution) && (
-          <>
-            <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
-
-            <FadeIn delay={150} style={styles.section}>
-              <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-                {t.dashboard.evolutionTitle}
-              </Text>
-              <MonthlyEvolutionChart evolution={evolution} />
-            </FadeIn>
-          </>
-        )}
-
-        {/* 4. ALERTAS E RESUMO INTELIGENTE COM IA */}
+        {/* 3. ALERTAS E RESUMO INTELIGENTE COM IA */}
         {transactions.length > 0 && (
           <>
             <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
@@ -550,6 +721,8 @@ export default function AnalyticsScreen() {
               <UnusualSpendingAlerts />
               <MonthlyInsightCard />
             </FadeIn>
+          </>
+        )}
           </>
         )}
       </ScrollView>

@@ -85,3 +85,82 @@ export function isExpenseIncrease(evolution: MonthlyTotals[], index: number): bo
 export function maxExpenseCents(evolution: MonthlyTotals[]): number {
   return evolution.reduce((max, m) => Math.max(max, m.expense.cents), 0);
 }
+
+export interface MonthStepComparison {
+  month: YearMonth;
+  expense: Money;
+  income: Money;
+  /** Saldo líquido do mês (`income - expense`). */
+  balance: Money;
+  /** Variação percentual do gasto em relação ao mês imediatamente anterior. */
+  vsPrevious: ExpenseComparison;
+}
+
+export interface MultiMonthSummary {
+  /** Média mensal considerando apenas meses com algum gasto (> 0). */
+  averageExpense: Money;
+  /** Mês de maior gasto na janela. */
+  highestMonth: { month: YearMonth; expense: Money } | null;
+  /** Mês de menor gasto (entre os meses com gasto > 0) na janela. */
+  lowestMonth: { month: YearMonth; expense: Money } | null;
+  /** Comparação do mês atual (último da janela) contra a média histórica dos meses anteriores. */
+  vsAverage: ExpenseComparison;
+  /** Lista mês a mês com variação percentual em relação ao mês anterior. */
+  steps: MonthStepComparison[];
+}
+
+/**
+ * Resume o comportamento dos gastos ao longo dos meses:
+ * média mensal, pico, menor mês, variação de cada mês contra o anterior e tendência contra a média.
+ */
+export function computeMultiMonthSummary(evolution: ReadonlyArray<MonthlyTotals>): MultiMonthSummary {
+  const activeMonths = evolution.filter((m) => m.expense.isPositive());
+
+  const avgCents =
+    activeMonths.length > 0
+      ? Math.round(activeMonths.reduce((sum, m) => sum + m.expense.cents, 0) / activeMonths.length)
+      : 0;
+  const averageExpense = Money.fromCents(avgCents);
+
+  let highestMonth: { month: YearMonth; expense: Money } | null = null;
+  let lowestMonth: { month: YearMonth; expense: Money } | null = null;
+
+  for (const m of activeMonths) {
+    if (!highestMonth || m.expense.cents > highestMonth.expense.cents) {
+      highestMonth = { month: m.month, expense: m.expense };
+    }
+    if (!lowestMonth || m.expense.cents < lowestMonth.expense.cents) {
+      lowestMonth = { month: m.month, expense: m.expense };
+    }
+  }
+
+  const current = evolution[evolution.length - 1];
+  const previousActive = evolution.slice(0, -1).filter((m) => m.expense.isPositive());
+  const prevAvgCents =
+    previousActive.length > 0
+      ? Math.round(previousActive.reduce((sum, m) => sum + m.expense.cents, 0) / previousActive.length)
+      : 0;
+
+  const vsAverage: ExpenseComparison = current
+    ? compareExpense(current.expense, Money.fromCents(prevAvgCents))
+    : { kind: 'no-data' };
+
+  const steps: MonthStepComparison[] = evolution.map((m, idx) => {
+    const prev = idx > 0 ? evolution[idx - 1] : null;
+    return {
+      month: m.month,
+      expense: m.expense,
+      income: m.income,
+      balance: m.income.subtract(m.expense),
+      vsPrevious: prev ? compareExpense(m.expense, prev.expense) : { kind: 'no-data' },
+    };
+  });
+
+  return {
+    averageExpense,
+    highestMonth,
+    lowestMonth,
+    vsAverage,
+    steps,
+  };
+}
