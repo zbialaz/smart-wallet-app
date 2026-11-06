@@ -214,7 +214,7 @@ export default function AnalyticsScreen() {
             </Pressable>
           </View>
 
-          <MonthSwitcher month={month} onChange={setMonth} />
+          {viewMode === 'month' && <MonthSwitcher month={month} onChange={setMonth} />}
         </FadeIn>
 
         {viewMode === 'months' ? (
