@@ -160,9 +160,13 @@ export default function AnalyticsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        {/* Cabeçalho Limpo + Alternador "Neste mês" vs "Ao longo dos meses" */}
+        {/* Cabeçalho Dinâmico + Alternador "Neste mês" vs "Ao longo dos meses" */}
         <FadeIn style={{ gap: spacing.md }}>
-          <Text variant="title">{t.dashboard.analyticsTitle}</Text>
+          <Text variant="title">
+            {viewMode === 'month'
+              ? t.dashboard.analyticsTitle
+              : t.dashboard.analyticsMultiMonthTitle}
+          </Text>
 
           <View
             style={{
