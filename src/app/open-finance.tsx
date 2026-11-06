@@ -16,6 +16,7 @@ import {
   buildSampleOpenFinanceTransactions,
   classifyPluggyTransactions,
   createPluggyConnectToken,
+  createPluggySandboxItem,
   fetchPluggyItemTransactions,
   type ClassifiedBankTransaction,
 } from '@/domains/open-finance/pluggy-sync';
@@ -123,12 +124,31 @@ export default function OpenFinanceScreen() {
     setError(null);
     setSuccessMsg(null);
     setLoading(true);
-    await setOpenFinanceConfig({ clientId, clientSecret, itemId });
+
+    let resolvedItemId = itemId.trim();
+
+    // Se o usuário preencheu Client ID + Secret mas ainda não tem Item ID, cria automaticamente
+    // uma conexão de teste no Sandbox oficial da Pluggy (Pluggy Bank: user-ok / password-ok)
+    if (!resolvedItemId && clientId.trim() && clientSecret.trim()) {
+      const sandboxRes = await createPluggySandboxItem({
+        clientId,
+        clientSecret,
+      });
+      if (!sandboxRes.ok) {
+        setLoading(false);
+        setError(sandboxRes.error);
+        return;
+      }
+      resolvedItemId = sandboxRes.value;
+      setItemId(resolvedItemId);
+    }
+
+    await setOpenFinanceConfig({ clientId, clientSecret, itemId: resolvedItemId });
 
     const fetched = await fetchPluggyItemTransactions({
       clientId,
       clientSecret,
-      itemId,
+      itemId: resolvedItemId,
     });
     setLoading(false);
 
@@ -273,7 +293,7 @@ export default function OpenFinanceScreen() {
                     testID="pluggy-item-id"
                     value={itemId}
                     onChangeText={setItemId}
-                    placeholder="UUID do Item conectado no Open Finance"
+                    placeholder="Opcional: deixe em branco para gerar Sandbox automático"
                     autoCapitalize="none"
                   />
                 </Field>

@@ -394,6 +394,85 @@ export async function createPluggyConnectToken(params: {
 }
 
 /**
+ * Cria automaticamente uma conexão de teste no Sandbox oficial da Pluggy (`Pluggy Bank`, `connectorId: 2`)
+ * usando `user-ok` / `password-ok` e aguarda a sincronização inicial para retornar o `itemId` pronto.
+ */
+export async function createPluggySandboxItem(params: {
+  clientId: string;
+  clientSecret: string;
+  fetchFn?: typeof fetch;
+  maxPollAttempts?: number;
+  pollIntervalMs?: number;
+}): Promise<Result<string, string>> {
+  const {
+    clientId,
+    clientSecret,
+    fetchFn = fetch,
+    maxPollAttempts = 8,
+    pollIntervalMs = 1200,
+  } = params;
+
+  const authRes = await authenticatePluggy({ clientId, clientSecret, fetchFn });
+  if (!authRes.ok) return authRes;
+  const apiKey = authRes.value;
+
+  try {
+    const createRes = await fetchFn(`${PLUGGY_BASE_URL}/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': apiKey,
+      },
+      body: JSON.stringify({
+        connectorId: 2,
+        parameters: {
+          user: 'user-ok',
+          password: 'password-ok',
+        },
+      }),
+    });
+
+    const created = (await createRes.json()) as {
+      id?: string;
+      status?: string;
+      message?: string;
+    };
+    if (!createRes.ok || !created.id) {
+      return fail(
+        created?.message || `Não foi possível criar o Item Sandbox na Pluggy (HTTP ${createRes.status})`,
+      );
+    }
+
+    const itemId = created.id;
+
+    // Aguarda o Sandbox da Pluggy finalizar a criação das contas e transações (status === 'UPDATED')
+    for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
+      if (created.status === 'UPDATED' && attempt === 0) break;
+      if (pollIntervalMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
+      const statusRes = await fetchFn(`${PLUGGY_BASE_URL}/items/${encodeURIComponent(itemId)}`, {
+        method: 'GET',
+        headers: { 'X-API-KEY': apiKey },
+      });
+      if (!statusRes.ok) break;
+      const statusData = (await statusRes.json()) as { status?: string };
+      if (
+        statusData.status === 'UPDATED' ||
+        statusData.status === 'LOGIN_ERROR' ||
+        statusData.status === 'OUTDATED'
+      ) {
+        break;
+      }
+    }
+
+    return ok(itemId);
+  } catch (err) {
+    return fail(err instanceof Error ? err.message : 'Erro ao criar Item Sandbox na Pluggy');
+  }
+}
+
+/**
  * Busca todas as transações das contas vinculadas a um `itemId` na Pluggy (`GET /accounts` + `GET /transactions`).
  */
 export async function fetchPluggyItemTransactions(params: {

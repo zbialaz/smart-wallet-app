@@ -8,6 +8,7 @@ import {
   buildSampleOpenFinanceTransactions,
   classifyPluggyTransactions,
   cleanOpenFinanceDescription,
+  createPluggySandboxItem,
   fetchPluggyItemTransactions,
 } from './pluggy-sync';
 
@@ -145,5 +146,38 @@ describe('Open Finance Brasil via Pluggy API (pluggy-sync)', () => {
       expect(fetched.value).toHaveLength(1);
       expect(fetched.value[0].id).toBe('tx-999');
     }
+  });
+
+  it('cria automaticamente um Item ID de teste no Sandbox da Pluggy (connectorId: 2, user-ok/password-ok)', async () => {
+    const mockFetch = vi
+      .fn()
+      // 1. POST /auth
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ apiKey: 'jwt-pluggy-token' }),
+      })
+      // 2. POST /items
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: 'sandbox-item-uuid-999', status: 'UPDATING' }),
+      })
+      // 3. GET /items/sandbox-item-uuid-999
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'sandbox-item-uuid-999', status: 'UPDATED' }),
+      });
+
+    const res = await createPluggySandboxItem({
+      clientId: 'id-1',
+      clientSecret: 'secret-1',
+      fetchFn: mockFetch as unknown as typeof fetch,
+      maxPollAttempts: 2,
+      pollIntervalMs: 0,
+    });
+
+    expect(res).toEqual({ ok: true, value: 'sandbox-item-uuid-999' });
   });
 });
