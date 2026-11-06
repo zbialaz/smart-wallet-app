@@ -11,13 +11,16 @@ import {
 
 import {
   buildCategoryCloud,
+  buildSubscriptionsRadar,
   buildTopExpenses,
+  computeMonthProjection,
   computeSpendingMetrics,
   packCategoryBubbles,
 } from '@/domains/dashboard/analytics';
 import { formatShare } from '@/domains/dashboard/summary';
 import { hasEnoughHistory } from '@/domains/dashboard/trends';
-import { currentYearMonth, formatRelativeDate, today } from '@/shared/date';
+import { daysInMonth } from '@/domains/transactions/recurring';
+import { currentYearMonth, formatRelativeDate, today, type YearMonth } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { useMonthSummary } from '@/store/selectors';
@@ -65,10 +68,37 @@ export default function AnalyticsScreen() {
   const transactions = useWallet((s) => s.transactions);
   const categories = useWallet((s) => s.categories);
   const evolution = useWallet((s) => s.monthlyEvolution);
+  const monthlyBudget = useWallet((s) => s.monthlyBudget);
+  const recurringRules = useWallet((s) => s.recurringRules);
 
   const summary = useMonthSummary();
 
   const [selectedCloudCategoryId, setSelectedCloudCategoryId] = useState<string | null>(null);
+
+  const isCurrentMonth = month === currentYearMonth();
+  const elapsedDays = daysElapsedInMonth(month);
+  const totalMonthDays = daysInMonth(month as YearMonth);
+
+  const projection = useMemo(
+    () =>
+      computeMonthProjection({
+        totalExpense: summary.expense,
+        daysElapsed: elapsedDays,
+        totalDaysInMonth: totalMonthDays,
+        monthlyBudget,
+        isCurrentMonth,
+      }),
+    [summary.expense, elapsedDays, totalMonthDays, monthlyBudget, isCurrentMonth],
+  );
+
+  const subscriptionsRadar = useMemo(
+    () =>
+      buildSubscriptionsRadar({
+        transactions,
+        recurringRules,
+      }),
+    [transactions, recurringRules],
+  );
 
   const cloudItems = useMemo(
     () => buildCategoryCloud(transactions, categories),
@@ -165,6 +195,94 @@ export default function AnalyticsScreen() {
                 </Text>
               </View>
             </View>
+          )}
+
+          {/* Projeção de Fechamento do Mês ("Ritmo do Mês" estilo Pierre / Copilot) */}
+          {isCurrentMonth && summary.expense.cents > 0 && (
+            <Card style={{ gap: spacing.xs }}>
+              <View
+                testID="month-projection-card"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                  <Ionicons name="trending-up-outline" size={14} color={colors.primary} />
+                  <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                    {t.dashboard.projectionCardTitle}
+                  </Text>
+                </View>
+                <Text variant="caption" color="textMuted">
+                  {t.dashboard.projectionPaceNote(showMoney(projection.dailyPace))}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  paddingTop: 2,
+                }}>
+                <Text variant="caption" color="textMuted">
+                  {t.dashboard.projectionEstimatedLabel}
+                </Text>
+                <Text
+                  variant="bodyStrong"
+                  style={{
+                    fontSize: 18,
+                    color:
+                      projection.budgetStatus === 'exceeded'
+                        ? colors.expense
+                        : projection.budgetStatus === 'within'
+                          ? colors.income
+                          : colors.text,
+                  }}>
+                  {showMoney(projection.projectedTotal)}
+                </Text>
+              </View>
+
+              {projection.budgetStatus !== 'no-budget' &&
+                projection.projectedDiffFromBudget &&
+                projection.safeDailyAllowance && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      paddingTop: 2,
+                    }}>
+                    <Ionicons
+                      name={
+                        projection.budgetStatus === 'exceeded'
+                          ? 'alert-circle'
+                          : 'checkmark-circle'
+                      }
+                      size={14}
+                      color={
+                        projection.budgetStatus === 'exceeded' ? colors.expense : colors.income
+                      }
+                    />
+                    <Text
+                      variant="caption"
+                      style={{
+                        flex: 1,
+                        color:
+                          projection.budgetStatus === 'exceeded' ? colors.expense : colors.income,
+                      }}>
+                      {projection.budgetStatus === 'exceeded'
+                        ? t.dashboard.projectionExceedBudget(
+                            showMoney(projection.projectedDiffFromBudget),
+                            showMoney(projection.safeDailyAllowance),
+                          )
+                        : t.dashboard.projectionWithinBudget(
+                            showMoney(projection.projectedDiffFromBudget),
+                          )}
+                    </Text>
+                  </View>
+                )}
+            </Card>
           )}
         </FadeIn>
 
@@ -444,6 +562,87 @@ export default function AnalyticsScreen() {
                   );
                 })}
               </View>
+            </FadeIn>
+          </>
+        )}
+
+        {/* 2.5. RADAR DE ASSINATURAS E CUSTOS FIXOS */}
+        {subscriptionsRadar.count > 0 && (
+          <>
+            <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
+
+            <FadeIn delay={135} style={styles.section}>
+              <Text variant="label" color="textMuted" style={styles.sectionTitle}>
+                {t.dashboard.subscriptionsRadarTitle}
+              </Text>
+
+              <Card style={{ gap: spacing.md }}>
+                <View testID="subscriptions-radar-card" style={{ gap: spacing.sm }}>
+                  <View style={styles.kpiRow}>
+                    <View
+                      style={[
+                        styles.kpiCard,
+                        { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
+                      ]}>
+                      <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                        {t.dashboard.subscriptionsMonthlyLabel}
+                      </Text>
+                      <Text variant="bodyStrong" style={{ fontSize: 16 }}>
+                        {showMoney(subscriptionsRadar.monthlyTotal)}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.kpiCard,
+                        { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
+                      ]}>
+                      <Text variant="label" color="textMuted" style={styles.kpiLabel}>
+                        {t.dashboard.subscriptionsAnnualLabel}
+                      </Text>
+                      <Text variant="bodyStrong" style={{ fontSize: 16, color: colors.primary }}>
+                        {showMoney(subscriptionsRadar.annualizedTotal)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text variant="caption" color="textMuted">
+                    {t.dashboard.subscriptionsShareNote(
+                      Math.round(subscriptionsRadar.shareOfExpense * 100),
+                      subscriptionsRadar.count,
+                    )}
+                  </Text>
+
+                  <View
+                    style={{
+                      borderTopWidth: 1,
+                      borderTopColor: colors.border,
+                      paddingTop: spacing.xs,
+                      gap: spacing.xs,
+                    }}>
+                    {subscriptionsRadar.items.slice(0, 6).map((sub) => (
+                      <View
+                        key={sub.id}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingVertical: 4,
+                        }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                          <Ionicons name="repeat" size={14} color={colors.primary} />
+                          <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
+                            {sub.title}
+                          </Text>
+                        </View>
+                        <Text variant="bodyStrong">
+                          {showMoney(sub.amount)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </Card>
             </FadeIn>
           </>
         )}

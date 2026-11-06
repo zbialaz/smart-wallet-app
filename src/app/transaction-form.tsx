@@ -15,6 +15,7 @@ import type { TransferField } from '@/domains/accounts/transfer';
 import { suggestCategory } from '@/domains/categories/auto-classify';
 import { categoriesForType } from '@/domains/categories/category';
 import { detectSingleExpenseAlert } from '@/domains/insights/unusual-spending';
+import { parseQuickEntry } from '@/domains/transactions/quick-entry';
 import {
   analyzeReceiptWithGemini,
   type ReceiptScanResult,
@@ -63,16 +64,27 @@ export default function TransactionFormScreen() {
   const deleteTransaction = useWallet((s) => s.deleteTransaction);
   const findTransaction = useWallet((s) => s.findTransaction);
 
+  const defaultAccountId = (() => {
+    if (accounts.length === 0) return null;
+    const recentTx = transactions.find((tx) => accounts.some((a) => a.id === tx.accountId));
+    return recentTx?.accountId ?? accounts[0].id;
+  })();
+
   const [type, setType] = useState<TransactionType>('expense');
   const [isTransfer, setIsTransfer] = useState(!isEditing && mode === 'transfer');
   const [amount, setAmount] = useState(Money.zero());
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [manualCategory, setManualCategory] = useState(false);
-  const [accountId, setAccountId] = useState<string | null>(accounts.length === 1 ? accounts[0].id : null);
-  const [toAccountId, setToAccountId] = useState<string | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(defaultAccountId);
+  const [toAccountId, setToAccountId] = useState<string | null>(
+    accounts.find((a) => a.id !== defaultAccountId)?.id ?? null,
+  );
   const [dateText, setDateText] = useState(formatDateBR(today()));
+  const [showCustomDate, setShowCustomDate] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [quickPhrase, setQuickPhrase] = useState('');
+  const [quickEntryApplied, setQuickEntryApplied] = useState(false);
   const [showReceiptPaste, setShowReceiptPaste] = useState(false);
   const [receiptTextInput, setReceiptTextInput] = useState('');
   const [scanningReceipt, setScanningReceipt] = useState(false);
@@ -148,6 +160,40 @@ export default function TransactionFormScreen() {
   function selectTransferMode() {
     if (isTransfer) return;
     setIsTransfer(true);
+    setErrors({});
+  }
+
+  function onApplyQuickEntry() {
+    const parsed = parseQuickEntry({
+      text: quickPhrase,
+      accounts,
+      categories,
+      learnedRules: learnedCategoryRules,
+      history: transactions,
+      today: today(),
+    });
+    if (!parsed) return;
+
+    setIsTransfer(false);
+    setType(parsed.type);
+    if (parsed.amount) {
+      setAmount(parsed.amount);
+    }
+    if (parsed.description) {
+      setDescription(parsed.description);
+    }
+    if (parsed.categoryId) {
+      setManualCategory(true);
+      setCategoryId(parsed.categoryId);
+    }
+    if (parsed.accountId) {
+      setAccountId(parsed.accountId);
+    }
+    setDateText(formatDateBR(parsed.date));
+    if (parsed.isRecurring) {
+      setIsRecurring(true);
+    }
+    setQuickEntryApplied(true);
     setErrors({});
   }
 
@@ -344,6 +390,72 @@ export default function TransactionFormScreen() {
               </Pressable>
             )}
           </View>
+
+          {/* Lançamento Rápido por Frase ("Modo Pierre") */}
+          {!isEditing && !isTransfer && (
+            <Card style={{ gap: spacing.sm }}>
+              <View
+                testID="quick-entry-card"
+                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                <Ionicons name="sparkles" size={15} color={colors.primary} />
+                <Text variant="caption" style={{ color: colors.primary, fontWeight: '700', letterSpacing: 0.6 }}>
+                  {t.transactions.quickEntryTitle}
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <TextField
+                    testID="quick-entry-input"
+                    value={quickPhrase}
+                    onChangeText={(val) => {
+                      setQuickPhrase(val);
+                      if (quickEntryApplied) setQuickEntryApplied(false);
+                    }}
+                    placeholder={t.transactions.quickEntryPlaceholder}
+                    returnKeyType="done"
+                    onSubmitEditing={onApplyQuickEntry}
+                  />
+                </View>
+                <Pressable
+                  testID="quick-entry-apply-btn"
+                  disabled={!quickPhrase.trim()}
+                  onPress={onApplyQuickEntry}
+                  style={{
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: quickPhrase.trim() ? colors.primary : colors.surfaceRaised,
+                    opacity: quickPhrase.trim() ? 1 : 0.5,
+                  }}>
+                  <Text
+                    variant="caption"
+                    style={{
+                      color: quickPhrase.trim() ? '#FFFFFF' : colors.textMuted,
+                      fontWeight: '700',
+                    }}>
+                    {t.transactions.quickEntryApplyBtn}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {quickEntryApplied && (
+                <View
+                  testID="quick-entry-applied-banner"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    paddingVertical: 4,
+                  }}>
+                  <Ionicons name="checkmark-circle" size={14} color={colors.income} />
+                  <Text variant="caption" style={{ color: colors.income, flex: 1 }}>
+                    {t.transactions.quickEntryAppliedBanner}
+                  </Text>
+                </View>
+              )}
+            </Card>
+          )}
 
           {/* Leitor de Nota Fiscal / Cupom Fiscal (Gastos) */}
           {!isEditing && !isTransfer && type === 'expense' && (
@@ -640,8 +752,31 @@ export default function TransactionFormScreen() {
 
           <Field label={t.transactions.dateLabel} error={errors.date ?? (parsedDate ? undefined : t.transactions.dateFormatError)}>
             <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-              <Chip label={t.common.today} selected={parsedDate === today()} onPress={() => setDateText(formatDateBR(today()))} />
-              <Chip label={t.common.yesterday} selected={parsedDate === addDays(today(), -1)} onPress={() => setDateText(formatDateBR(addDays(today(), -1)))} />
+              <Chip
+                label={t.common.today}
+                selected={!showCustomDate && parsedDate === today()}
+                onPress={() => {
+                  setShowCustomDate(false);
+                  setDateText(formatDateBR(today()));
+                }}
+              />
+              <Chip
+                label={t.common.yesterday}
+                selected={!showCustomDate && parsedDate === addDays(today(), -1)}
+                onPress={() => {
+                  setShowCustomDate(false);
+                  setDateText(formatDateBR(addDays(today(), -1)));
+                }}
+              />
+              <Chip
+                label={t.transactions.otherDateChip}
+                icon="calendar-outline"
+                selected={
+                  showCustomDate ||
+                  (parsedDate !== today() && parsedDate !== addDays(today(), -1))
+                }
+                onPress={() => setShowCustomDate((v) => !v)}
+              />
               {!isEditing && !isTransfer && (
                 <Chip
                   label={t.transactions.recurringToggle}
@@ -657,14 +792,19 @@ export default function TransactionFormScreen() {
                 {t.transactions.recurringHint(dayFromISODate(parsedDate ?? today()))}
               </Text>
             )}
-            <TextField
-              testID="date-input"
-              value={dateText}
-              onChangeText={setDateText}
-              placeholder="DD/MM/AAAA"
-              keyboardType="numbers-and-punctuation"
-              invalid={!parsedDate || !!errors.date}
-            />
+            {(showCustomDate ||
+              !parsedDate ||
+              !!errors.date ||
+              (parsedDate !== today() && parsedDate !== addDays(today(), -1))) && (
+              <TextField
+                testID="date-input"
+                value={dateText}
+                onChangeText={setDateText}
+                placeholder="DD/MM/AAAA"
+                keyboardType="numbers-and-punctuation"
+                invalid={!parsedDate || !!errors.date}
+              />
+            )}
           </Field>
 
           <Button

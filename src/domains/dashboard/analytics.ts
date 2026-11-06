@@ -1,4 +1,5 @@
 import type { Category } from '@/domains/categories/category';
+import type { RecurringRule } from '@/domains/transactions/recurring';
 import type { Transaction } from '@/domains/transactions/transaction';
 import { Money } from '@/shared/money';
 
@@ -315,6 +316,228 @@ export function computeSpendingMetrics(params: {
     averagePerExpense,
     dailyAverage,
     savingsRatePercent,
+  };
+}
+
+export interface MonthProjection {
+  /** Projeção total de gastos até o último dia do mês no ritmo atual. */
+  projectedTotal: Money;
+  /** Ritmo médio por dia corrido (`totalExpense / daysElapsed`). */
+  dailyPace: Money;
+  /** Status da projeção frente à meta mensal configurada. */
+  budgetStatus: 'within' | 'warning' | 'exceeded' | 'no-budget';
+  /** Diferença projetada em relação à meta (sempre positiva; use `budgetStatus` para saber se sobra ou falta). */
+  projectedDiffFromBudget: Money | null;
+  /** Quanto ainda pode gastar por dia nos dias restantes do mês para fechar dentro da meta. */
+  safeDailyAllowance: Money | null;
+  /** Fração do mês já transcorrida (0 a 1). */
+  monthProgressFraction: number;
+}
+
+/**
+ * Calcula a Projeção de Fechamento do Mês ("Ritmo do Mês" estilo Pierre / Copilot Money):
+ * estima quanto o usuário terá gasto no fim do mês se mantiver o ritmo diário atual
+ * e compara com a meta mensal configurada.
+ */
+export function computeMonthProjection(params: {
+  totalExpense: Money;
+  daysElapsed: number;
+  totalDaysInMonth: number;
+  monthlyBudget?: Money | null;
+  isCurrentMonth?: boolean;
+}): MonthProjection {
+  const safeTotalDays = Math.max(1, Math.round(params.totalDaysInMonth));
+  const safeElapsed = Math.max(1, Math.min(safeTotalDays, Math.round(params.daysElapsed)));
+  const isCurrent = params.isCurrentMonth ?? true;
+
+  const dailyPaceCents =
+    params.totalExpense.cents > 0 ? Math.round(params.totalExpense.cents / safeElapsed) : 0;
+  const projectedCents = isCurrent
+    ? Math.round((params.totalExpense.cents / safeElapsed) * safeTotalDays)
+    : params.totalExpense.cents;
+
+  const projectedTotal = Money.fromCents(projectedCents);
+  const dailyPace = Money.fromCents(dailyPaceCents);
+  const monthProgressFraction = safeElapsed / safeTotalDays;
+
+  const budget = params.monthlyBudget;
+  if (!budget || budget.cents <= 0) {
+    return {
+      projectedTotal,
+      dailyPace,
+      budgetStatus: 'no-budget',
+      projectedDiffFromBudget: null,
+      safeDailyAllowance: null,
+      monthProgressFraction,
+    };
+  }
+
+  const remainingDays = Math.max(1, safeTotalDays - safeElapsed);
+  const remainingBudgetCents = Math.max(0, budget.cents - params.totalExpense.cents);
+  const safeDailyAllowance = Money.fromCents(Math.round(remainingBudgetCents / remainingDays));
+
+  const diffCents = Math.abs(budget.cents - projectedCents);
+  const projectedDiffFromBudget = Money.fromCents(diffCents);
+
+  let budgetStatus: MonthProjection['budgetStatus'] = 'within';
+  if (projectedCents > budget.cents) {
+    budgetStatus = 'exceeded';
+  } else if (projectedCents >= budget.cents * 0.9) {
+    budgetStatus = 'warning';
+  }
+
+  return {
+    projectedTotal,
+    dailyPace,
+    budgetStatus,
+    projectedDiffFromBudget,
+    safeDailyAllowance,
+    monthProgressFraction,
+  };
+}
+
+export interface SubscriptionRadarItem {
+  id: string;
+  title: string;
+  amount: Money;
+  categoryId: string;
+  isFromRule: boolean;
+}
+
+export interface SubscriptionsRadar {
+  items: SubscriptionRadarItem[];
+  monthlyTotal: Money;
+  annualizedTotal: Money;
+  /** Fração (0 a 1) do gasto mensal comprometida com assinaturas e custos fixos. */
+  shareOfExpense: number;
+  count: number;
+}
+
+const KNOWN_SUBSCRIPTION_KEYWORDS = [
+  'netflix',
+  'spotify',
+  'icloud',
+  'apple.com/bill',
+  'google one',
+  'youtube',
+  'amazon prime',
+  'prime video',
+  'disney',
+  'max',
+  'hbo',
+  'globoplay',
+  'chatgpt',
+  'openai',
+  'claude',
+  'canva',
+  'adobe',
+  'microsoft 365',
+  'smart fit',
+  'smartfit',
+  'gympass',
+  'wellhub',
+  'totalpass',
+  'aluguel',
+  'condominio',
+  'condomínio',
+  'internet',
+  'fibra',
+  'claro',
+  'vivo',
+  'tim',
+  'seguro',
+  'mensalidade',
+];
+
+function isSubscriptionLikeDescription(description: string | null): boolean {
+  if (!description) return false;
+  const lower = description.toLowerCase();
+  return KNOWN_SUBSCRIPTION_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+/**
+ * Constrói o Radar de Assinaturas e Custos Fixos do mês:
+ * combina lançamentos na categoria `Assinaturas` (`cat-subscriptions`), regras recorrentes
+ * ativas (`RecurringRule`) e despesas com nomes clássicos de assinatura/recorrência,
+ * calculando o impacto mensal e o custo anualizado (12 meses).
+ */
+export function buildSubscriptionsRadar(params: {
+  transactions: ReadonlyArray<Transaction>;
+  recurringRules?: ReadonlyArray<RecurringRule>;
+}): SubscriptionsRadar {
+  const { transactions, recurringRules = [] } = params;
+  const activeExpenseRules = recurringRules.filter((r) => r.active && r.type === 'expense');
+
+  const totalExpenseCents = transactions
+    .filter((t) => t.type === 'expense' && t.amount.cents > 0)
+    .reduce((sum, t) => sum + t.amount.cents, 0);
+
+  const items: SubscriptionRadarItem[] = [];
+  const seenTitles = new Set<string>();
+
+  // 1. Transações do mês que são da categoria Assinaturas, batem com uma regra recorrente ou têm nome de assinatura
+  for (const tx of transactions) {
+    if (tx.type !== 'expense' || tx.amount.cents <= 0) continue;
+
+    const matchesRule = activeExpenseRules.some(
+      (rule) =>
+        (rule.description &&
+          tx.description &&
+          rule.description.toLowerCase() === tx.description.toLowerCase()) ||
+        (rule.categoryId === tx.categoryId && rule.amountCents === tx.amount.cents),
+    );
+
+    const isSub =
+      tx.categoryId === 'cat-subscriptions' ||
+      matchesRule ||
+      isSubscriptionLikeDescription(tx.description);
+
+    if (!isSub) continue;
+
+    const title = (tx.description?.trim() || 'Assinatura').trim();
+    const dedupeKey = `${title.toLowerCase()}-${tx.amount.cents}`;
+    if (seenTitles.has(dedupeKey)) continue;
+    seenTitles.add(dedupeKey);
+
+    items.push({
+      id: tx.id,
+      title,
+      amount: tx.amount,
+      categoryId: tx.categoryId,
+      isFromRule: matchesRule,
+    });
+  }
+
+  // 2. Inclui regras recorrentes ativas que ainda não caíram neste mês para visão completa dos custos fixos
+  for (const rule of activeExpenseRules) {
+    if (rule.amountCents <= 0) continue;
+    const title = (rule.description?.trim() || 'Recorrência mensal').trim();
+    const dedupeKey = `${title.toLowerCase()}-${rule.amountCents}`;
+    if (seenTitles.has(dedupeKey)) continue;
+    seenTitles.add(dedupeKey);
+
+    items.push({
+      id: `rule-${rule.id}`,
+      title,
+      amount: Money.fromCents(rule.amountCents),
+      categoryId: rule.categoryId,
+      isFromRule: true,
+    });
+  }
+
+  items.sort((a, b) => b.amount.cents - a.amount.cents);
+
+  const monthlyCents = items.reduce((sum, item) => sum + item.amount.cents, 0);
+  const annualizedCents = monthlyCents * 12;
+  const denominator = Math.max(totalExpenseCents, monthlyCents);
+  const shareOfExpense = denominator > 0 ? monthlyCents / denominator : 0;
+
+  return {
+    items,
+    monthlyTotal: Money.fromCents(monthlyCents),
+    annualizedTotal: Money.fromCents(annualizedCents),
+    shareOfExpense,
+    count: items.length,
   };
 }
 

@@ -519,3 +519,4 @@ export function buildSampleOpenFinanceTransactions(referenceDate: ISODate): Plug
     },
   ];
 }
+

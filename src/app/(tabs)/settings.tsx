@@ -88,6 +88,7 @@ export default function SettingsScreen() {
   const geminiApiKey = useWallet((s) => s.geminiApiKey);
   const setGeminiApiKey = useWallet((s) => s.setGeminiApiKey);
   const [geminiInput, setGeminiInput] = useState(geminiApiKey);
+  const [showAdvancedAi, setShowAdvancedAi] = useState(false);
 
   useEffect(() => {
     setBudgetInput(monthlyBudget ?? Money.zero());
@@ -434,51 +435,70 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 5.5. GOOGLE GEMINI IA (OPCIONAL) */}
+        {/* 5.5. ASSISTENTE DE IA (RECOLHIDO POR PADRÃO PARA NÃO POLUIR A TELA) */}
         <FadeIn delay={155}>
           <Card style={{ gap: spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <IconBadge icon="sparkles" color={colors.primary} size={38} />
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyStrong">{t.settings.geminiTitle}</Text>
-                <Text variant="caption" color="textMuted">
-                  {geminiApiKey.trim().length > 0 ? t.settings.geminiActive : t.settings.geminiNone}
-                </Text>
+            <Pressable
+              testID="toggle-advanced-ai-btn"
+              onPress={() => setShowAdvancedAi((v) => !v)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: spacing.sm,
+              }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+                <IconBadge icon="sparkles" color={colors.primary} size={38} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">{t.settings.geminiTitle}</Text>
+                  <Text variant="caption" color="textMuted">
+                    {geminiApiKey.trim().length > 0 ? t.settings.geminiActive : t.settings.geminiNone}
+                  </Text>
+                </View>
               </View>
-            </View>
-
-            <Field label={t.settings.geminiDesc}>
-              <TextField
-                testID="gemini-api-key-input"
-                value={geminiInput}
-                onChangeText={setGeminiInput}
-                placeholder={t.settings.geminiPlaceholder}
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry
+              <Ionicons
+                name={showAdvancedAi ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color={colors.textMuted}
               />
-            </Field>
+            </Pressable>
 
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              {geminiApiKey.trim().length > 0 && (
-                <Button
-                  testID="remove-gemini-key-btn"
-                  label={t.settings.geminiRemove}
-                  variant="secondary"
-                  onPress={() => {
-                    setGeminiInput('');
-                    setGeminiApiKey('');
-                  }}
-                  style={{ flex: 1 }}
-                />
-              )}
-              <Button
-                testID="save-gemini-key-btn"
-                label={t.settings.geminiSave}
-                onPress={() => setGeminiApiKey(geminiInput)}
-                style={{ flex: 1 }}
-              />
-            </View>
+            {showAdvancedAi && (
+              <View style={{ gap: spacing.md, paddingTop: spacing.xs }}>
+                <Field label={t.settings.geminiDesc}>
+                  <TextField
+                    testID="gemini-api-key-input"
+                    value={geminiInput}
+                    onChangeText={setGeminiInput}
+                    placeholder={t.settings.geminiPlaceholder}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                  />
+                </Field>
+
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  {geminiApiKey.trim().length > 0 && (
+                    <Button
+                      testID="remove-gemini-key-btn"
+                      label={t.settings.geminiRemove}
+                      variant="secondary"
+                      onPress={() => {
+                        setGeminiInput('');
+                        setGeminiApiKey('');
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                  )}
+                  <Button
+                    testID="save-gemini-key-btn"
+                    label={t.settings.geminiSave}
+                    onPress={() => setGeminiApiKey(geminiInput)}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              </View>
+            )}
           </Card>
         </FadeIn>
 
