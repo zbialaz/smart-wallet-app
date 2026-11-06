@@ -19,6 +19,7 @@ import {
 } from '@/domains/dashboard/analytics';
 import { formatShare } from '@/domains/dashboard/summary';
 import { computeMultiMonthSummary, hasEnoughHistory } from '@/domains/dashboard/trends';
+import { categoryBudgetProgress } from '@/domains/settings/budget';
 import { daysInMonth } from '@/domains/transactions/recurring';
 import {
   currentYearMonth,
@@ -29,10 +30,10 @@ import {
   type YearMonth,
 } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
-import type { Money } from '@/shared/money';
+import { Money } from '@/shared/money';
 import { useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
-import { Card, EmptyState, FadeIn, IconBadge, Screen } from '@/ui/components';
+import { AmountInput, Button, Card, EmptyState, FadeIn, IconBadge, Screen } from '@/ui/components';
 import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
 import {
   MonthlyInsightCard,
@@ -76,12 +77,16 @@ export default function AnalyticsScreen() {
   const categories = useWallet((s) => s.categories);
   const evolution = useWallet((s) => s.monthlyEvolution);
   const monthlyBudget = useWallet((s) => s.monthlyBudget);
+  const categoryBudgets = useWallet((s) => s.categoryBudgets);
+  const setCategoryBudget = useWallet((s) => s.setCategoryBudget);
   const recurringRules = useWallet((s) => s.recurringRules);
 
   const summary = useMonthSummary();
 
   const [viewMode, setViewMode] = useState<'month' | 'months'>('month');
   const [selectedCloudCategoryId, setSelectedCloudCategoryId] = useState<string | null>(null);
+  const [editingCatLimit, setEditingCatLimit] = useState(false);
+  const [catLimitInput, setCatLimitInput] = useState<Money>(Money.zero());
 
   const isCurrentMonth = month === currentYearMonth();
   const elapsedDays = daysElapsedInMonth(month);
@@ -144,6 +149,23 @@ export default function AnalyticsScreen() {
 
   const activeCloudItem =
     cloudItems.find((item) => item.categoryId === selectedCloudCategoryId) ?? cloudItems[0] ?? null;
+
+  const activeCategoryBudget = useMemo(() => {
+    if (!activeCloudItem) return null;
+    return categoryBudgetProgress(activeCloudItem.total, activeCloudItem.categoryId, categoryBudgets);
+  }, [activeCloudItem, categoryBudgets]);
+
+  async function onSaveCategoryLimit() {
+    if (!activeCloudItem) return;
+    const res = await setCategoryBudget(activeCloudItem.categoryId, catLimitInput);
+    if (res.ok) setEditingCatLimit(false);
+  }
+
+  async function onRemoveCategoryLimit() {
+    if (!activeCloudItem) return;
+    await setCategoryBudget(activeCloudItem.categoryId, null);
+    setEditingCatLimit(false);
+  }
 
   const selectedCategoryTransactions = useMemo(() => {
     if (!activeCloudItem) return [];
@@ -549,6 +571,114 @@ export default function AnalyticsScreen() {
                       </Text>
                     </View>
                   </View>
+
+                  {/* Limite opcional por Categoria (Envelopes Simples) */}
+                  {activeCategoryBudget && !editingCatLimit ? (
+                    <Pressable
+                      testID="category-budget-progress"
+                      onPress={() => {
+                        setCatLimitInput(activeCategoryBudget.budget);
+                        setEditingCatLimit(true);
+                      }}
+                      style={{
+                        gap: 6,
+                        paddingTop: 4,
+                      }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                        <Text variant="caption" color="textMuted">
+                          {t.dashboard.budgetSpentOf(
+                            showMoney(activeCategoryBudget.spent),
+                            showMoney(activeCategoryBudget.budget),
+                          )}
+                        </Text>
+                        <Text
+                          variant="caption"
+                          style={{
+                            fontWeight: '700',
+                            color:
+                              activeCategoryBudget.status === 'exceeded'
+                                ? colors.expense
+                                : activeCategoryBudget.status === 'warning'
+                                  ? '#D99A2B'
+                                  : colors.income,
+                          }}>
+                          {activeCategoryBudget.status === 'exceeded'
+                            ? t.dashboard.budgetExceededBy(showMoney(activeCategoryBudget.exceededBy))
+                            : t.dashboard.budgetRemaining(showMoney(activeCategoryBudget.remaining))}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.shareBarTrack,
+                          { backgroundColor: colors.surfaceRaised },
+                        ]}>
+                        <View
+                          style={{
+                            width: `${Math.min(100, Math.max(4, activeCategoryBudget.percent))}%`,
+                            height: '100%',
+                            borderRadius: radius.pill,
+                            backgroundColor:
+                              activeCategoryBudget.status === 'exceeded'
+                                ? colors.expense
+                                : activeCategoryBudget.status === 'warning'
+                                  ? '#D99A2B'
+                                  : colors.income,
+                          }}
+                        />
+                      </View>
+                    </Pressable>
+                  ) : !editingCatLimit ? (
+                    <Pressable
+                      testID="toggle-category-budget-btn"
+                      onPress={() => {
+                        setCatLimitInput(Money.zero());
+                        setEditingCatLimit(true);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        alignSelf: 'flex-start',
+                        paddingVertical: 4,
+                      }}>
+                      <Ionicons name="flag-outline" size={13} color={colors.primary} />
+                      <Text variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
+                        {t.dashboard.categoryLimitSetBtn}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+
+                  {editingCatLimit && (
+                    <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
+                      <AmountInput
+                        value={catLimitInput}
+                        onChange={setCatLimitInput}
+                        accent={colors.primary}
+                      />
+                      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                        {activeCategoryBudget && (
+                          <Button
+                            testID="remove-category-budget-btn"
+                            label={t.dashboard.categoryLimitRemoveBtn}
+                            variant="secondary"
+                            onPress={onRemoveCategoryLimit}
+                            style={{ flex: 1 }}
+                          />
+                        )}
+                        <Button
+                          testID="save-category-budget-btn"
+                          label={t.dashboard.categoryLimitSaveBtn}
+                          onPress={onSaveCategoryLimit}
+                          style={{ flex: 1 }}
+                        />
+                      </View>
+                    </View>
+                  )}
 
                   {selectedCategoryTransactions.length > 0 && (
                     <View

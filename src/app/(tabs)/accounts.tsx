@@ -64,13 +64,23 @@ export default function AccountsScreen() {
           {accounts.map((account, i) => (
             <FadeIn key={account.id} delay={60 + i * 50}>
               <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <IconBadge icon="business" color={account.color} size={48} />
-                <View style={{ flex: 1 }}>
-                  <Text variant="bodyStrong">{account.name}</Text>
-                  <Text variant="caption" color="textMuted">
-                    {t.accounts.currentBalance}
-                  </Text>
-                </View>
+                <Pressable
+                  testID={`open-account-statement-${account.name}`}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/transactions',
+                      params: { accountId: account.id },
+                    })
+                  }
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                  <IconBadge icon="business" color={account.color} size={48} />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyStrong">{account.name}</Text>
+                    <Text variant="caption" color="textMuted">
+                      {t.accounts.currentBalance}
+                    </Text>
+                  </View>
+                </Pressable>
                 <Pressable onPress={toggleBalanceHidden}>
                   <Text
                     variant="heading"

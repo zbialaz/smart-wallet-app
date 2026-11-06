@@ -110,7 +110,13 @@ export function WalletPocket({
                       },
                     ]}>
                     <Pressable
-                      onPress={() => router.push('/(tabs)/accounts')}
+                      testID={`wallet-card-${acc.id}`}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/(tabs)/transactions',
+                          params: { accountId: acc.id },
+                        })
+                      }
                       style={({ pressed }) => [
                         styles.cardItem,
                         {

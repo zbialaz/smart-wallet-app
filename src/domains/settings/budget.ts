@@ -61,3 +61,54 @@ export function budgetProgress(spent: Money, budget: Money): BudgetProgress {
   };
 }
 
+/**
+ * Mapa `categoryId -> limite mensal em centavos` para tetos opcionais por categoria.
+ */
+export type CategoryBudgets = Record<string, number>;
+
+export function parseCategoryBudgets(raw: string | null | undefined): CategoryBudgets {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const clean: CategoryBudgets = {};
+    for (const [key, val] of Object.entries(parsed)) {
+      if (typeof val === 'number' && Number.isSafeInteger(val) && val > 0 && val <= MAX_BUDGET_CENTS) {
+        clean[key] = val;
+      }
+    }
+    return clean;
+  } catch {
+    return {};
+  }
+}
+
+export function updateCategoryBudgetMap(
+  current: CategoryBudgets,
+  categoryId: string,
+  value: Money | null,
+): Result<CategoryBudgets, string> {
+  if (!categoryId.trim()) return fail('Categoria inválida');
+  if (value === null) {
+    const next = { ...current };
+    delete next[categoryId];
+    return ok(next);
+  }
+  const validated = validateBudget(value);
+  if (!validated.ok) return validated;
+  return ok({
+    ...current,
+    [categoryId]: validated.value.cents,
+  });
+}
+
+export function categoryBudgetProgress(
+  spent: Money,
+  categoryId: string,
+  budgets: CategoryBudgets,
+): BudgetProgress | null {
+  const limitCents = budgets[categoryId];
+  if (!limitCents || limitCents <= 0) return null;
+  return budgetProgress(spent, Money.fromCents(limitCents));
+}
+

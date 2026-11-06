@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, SectionList, View } from 'react-native';
 
 import { categoriesForType } from '@/domains/categories/category';
@@ -37,7 +37,27 @@ export default function TransactionsScreen() {
   const setRecurringRuleActive = useWallet((s) => s.setRecurringRuleActive);
   const deleteRecurringRule = useWallet((s) => s.deleteRecurringRule);
 
-  const [filters, setFilters] = useState<TransactionFilters>(EMPTY_FILTERS);
+  const { accountId: paramAccountId, categoryId: paramCategoryId } = useLocalSearchParams<{
+    accountId?: string;
+    categoryId?: string;
+  }>();
+
+  const [filters, setFilters] = useState<TransactionFilters>(() => ({
+    ...EMPTY_FILTERS,
+    accountId: paramAccountId ?? null,
+    categoryId: paramCategoryId ?? null,
+  }));
+
+  useEffect(() => {
+    if (paramAccountId !== undefined || paramCategoryId !== undefined) {
+      setFilters((f) => ({
+        ...f,
+        accountId: paramAccountId ?? f.accountId,
+        categoryId: paramCategoryId ?? f.categoryId,
+      }));
+    }
+  }, [paramAccountId, paramCategoryId]);
+
   const filtersActive = hasActiveFilters(filters);
 
   const filtered = useMemo(() => filterTransactions(transactions, filters), [transactions, filters]);

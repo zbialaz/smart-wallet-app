@@ -158,6 +158,9 @@ const pt = {
     multiMonthAvgLabel: 'MÉDIA MENSAL',
     multiMonthHighestLabel: 'PICO DE GASTO',
     multiMonthHistoryTitle: 'COMPARATIVO MÊS A MÊS',
+    categoryLimitSetBtn: 'Definir limite mensal',
+    categoryLimitSaveBtn: 'Salvar limite',
+    categoryLimitRemoveBtn: 'Remover',
   },
   wallet: {
     cardBalance: 'SALDO',
@@ -480,6 +483,9 @@ const en: Translations = {
     multiMonthAvgLabel: 'MONTHLY AVG',
     multiMonthHighestLabel: 'PEAK MONTH',
     multiMonthHistoryTitle: 'MONTH-BY-MONTH COMPARISON',
+    categoryLimitSetBtn: 'Set monthly limit',
+    categoryLimitSaveBtn: 'Save limit',
+    categoryLimitRemoveBtn: 'Remove',
   },
   wallet: {
     cardBalance: 'BALANCE',
@@ -799,6 +805,9 @@ const es: Translations = {
     multiMonthAvgLabel: 'PROMEDIO MENSUAL',
     multiMonthHighestLabel: 'PICO DE GASTO',
     multiMonthHistoryTitle: 'COMPARACIÓN MES A MES',
+    categoryLimitSetBtn: 'Definir límite mensual',
+    categoryLimitSaveBtn: 'Guardar límite',
+    categoryLimitRemoveBtn: 'Quitar',
   },
   wallet: {
     cardBalance: 'SALDO',

@@ -59,7 +59,12 @@ import {
   type RecurringRule,
 } from '@/domains/transactions/recurring';
 import { createTransactionRepository } from '@/domains/transactions/transaction-repository';
-import { validateBudget } from '@/domains/settings/budget';
+import {
+  parseCategoryBudgets,
+  updateCategoryBudgetMap,
+  validateBudget,
+  type CategoryBudgets,
+} from '@/domains/settings/budget';
 import { addMonths, currentYearMonth, today, type YearMonth } from '@/shared/date';
 import { useI18nStore, type AppLanguage } from '@/shared/i18n';
 import { generateId, nowISO } from '@/shared/id';
@@ -83,6 +88,8 @@ const EVOLUTION_MONTHS = 6;
 
 /** A meta mensal é por usuário: cada um guarda a sua em `settings`. */
 const budgetKey = (userId: string) => `monthly_budget:${userId}`;
+/** Limites mensais opcionais por categoria (`Record<categoryId, cents>`). */
+const categoryBudgetsKey = (userId: string) => `category_budgets:${userId}`;
 /** Regras aprendidas de categorização automática por usuário (US-016.3). */
 const learnedRulesKey = (userId: string) => `learned_category_rules:${userId}`;
 /** Transações recorrentes mensais por usuário (US-006). */
@@ -145,6 +152,8 @@ interface WalletState {
   monthlyEvolution: MonthlyTotals[];
   /** US-019: meta de gastos mensal do usuário logado (null = sem meta). */
   monthlyBudget: Money | null;
+  /** Limites mensais opcionais por categoria (`categoryId -> cents`). */
+  categoryBudgets: CategoryBudgets;
   /** US-016.3: preferências de categorização aprendidas com o usuário. */
   learnedCategoryRules: LearnedCategoryRules;
   /** US-018: estatísticas mensais por categoria (últimos 6 meses) para alertas de gasto incomum. */
@@ -167,6 +176,8 @@ interface WalletState {
   toggleBalanceHidden(): Promise<void>;
   /** US-019: define (ou remove, com null) a meta de gastos mensal. */
   setMonthlyBudget(value: Money | null): Promise<Result<Money | null, string>>;
+  /** Define (ou remove, com null) o limite mensal opcional de uma categoria específica. */
+  setCategoryBudget(categoryId: string, value: Money | null): Promise<Result<CategoryBudgets, string>>;
   /** Salva ou limpa a chave da API do Google Gemini do usuário logado. */
   setGeminiApiKey(apiKey: string): Promise<void>;
   /** Salva as credenciais da API Pluggy (Open Finance) do usuário logado. */
@@ -236,6 +247,7 @@ export const useWallet = create<WalletState>()((set, get) => {
     transactions: [],
     monthlyEvolution: [],
     monthlyBudget: null,
+    categoryBudgets: {},
     learnedCategoryRules: {},
     categoryMonthlyStats: [],
     recurringRules: [],
@@ -315,6 +327,7 @@ export const useWallet = create<WalletState>()((set, get) => {
           transactions: [],
           monthlyEvolution: [],
           monthlyBudget: null,
+          categoryBudgets: {},
           learnedCategoryRules: {},
           categoryMonthlyStats: [],
           recurringRules: [],
@@ -359,6 +372,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         totalRows,
         catStats,
         budgetRow,
+        catBudgetsRow,
         learnedRow,
         geminiRow,
         ofConfigRow,
@@ -371,6 +385,10 @@ export const useWallet = create<WalletState>()((set, get) => {
         db?.getFirstAsync<{ value: string }>(
           'SELECT value FROM settings WHERE key = ?',
           budgetKey(user.id),
+        ),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          categoryBudgetsKey(user.id),
         ),
         db?.getFirstAsync<{ value: string }>(
           'SELECT value FROM settings WHERE key = ?',
@@ -405,6 +423,7 @@ export const useWallet = create<WalletState>()((set, get) => {
         categoryMonthlyStats: catStats,
         monthlyBudget:
           Number.isSafeInteger(budgetCents) && budgetCents > 0 ? Money.fromCents(budgetCents) : null,
+        categoryBudgets: parseCategoryBudgets(catBudgetsRow?.value),
         learnedCategoryRules: parseLearnedRules(learnedRow?.value),
         recurringRules,
         geminiApiKey: geminiRow?.value?.trim() || envGeminiKey(),
@@ -493,6 +512,23 @@ export const useWallet = create<WalletState>()((set, get) => {
       );
       set({ monthlyBudget: validated.value });
       return ok(validated.value);
+    },
+
+    async setCategoryBudget(categoryId, value) {
+      const user = get().currentUser;
+      const db = get().db;
+      if (!user || !db) return fail('Usuário não autenticado');
+
+      const updated = updateCategoryBudgetMap(get().categoryBudgets, categoryId, value);
+      if (!updated.ok) return updated;
+
+      await db.runAsync(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        categoryBudgetsKey(user.id),
+        JSON.stringify(updated.value),
+      );
+      set({ categoryBudgets: updated.value });
+      return ok(updated.value);
     },
 
     async setGeminiApiKey(apiKey) {

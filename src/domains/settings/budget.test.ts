@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { Money } from '@/shared/money';
 
-import { MAX_BUDGET_CENTS, budgetProgress, validateBudget } from './budget';
+import {
+  MAX_BUDGET_CENTS,
+  budgetProgress,
+  categoryBudgetProgress,
+  parseCategoryBudgets,
+  updateCategoryBudgetMap,
+  validateBudget,
+} from './budget';
 
 const c = (cents: number) => Money.fromCents(cents);
 
@@ -47,6 +54,27 @@ describe('US-019 — meta de gastos mensal', () => {
     expect(validateBudget(c(0)).ok).toBe(false);
     expect(validateBudget(c(-100)).ok).toBe(false);
     expect(validateBudget(c(MAX_BUDGET_CENTS + 1)).ok).toBe(false);
+  });
+
+  it('gerencia limites opcionais por categoria (updateCategoryBudgetMap e categoryBudgetProgress)', () => {
+    const added = updateCategoryBudgetMap({}, 'cat-food', c(60000));
+    expect(added.ok).toBe(true);
+    if (!added.ok) return;
+
+    const serialized = JSON.stringify(added.value);
+    const parsed = parseCategoryBudgets(serialized);
+    expect(parsed['cat-food']).toBe(60000);
+
+    const progress = categoryBudgetProgress(c(45000), 'cat-food', parsed);
+    expect(progress).not.toBeNull();
+    expect(progress?.percent).toBe(75);
+    expect(progress?.status).toBe('ok');
+
+    const removed = updateCategoryBudgetMap(parsed, 'cat-food', null);
+    expect(removed.ok).toBe(true);
+    if (removed.ok) {
+      expect(categoryBudgetProgress(c(45000), 'cat-food', removed.value)).toBeNull();
+    }
   });
 });
 
