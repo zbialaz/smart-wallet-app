@@ -83,45 +83,18 @@ export default function TransactionsScreen() {
           )}
         </View>
 
-        {usedCategories.length > 1 && (
-          <View style={{ gap: spacing.xs }}>
-            <Text variant="label" color="textMuted" style={{ fontSize: 10 }}>
-              {t.transactions.filterCategoryLabel}
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-              <Chip
-                label={t.transactions.filterAll}
-                selected={filters.categoryId === null}
-                onPress={() => setFilters((f) => ({ ...f, categoryId: null }))}
-              />
-              {usedCategories.map((c) => (
-                <Chip
-                  key={c.id}
-                  label={tCategory(c.id, c.name)}
-                  icon={c.icon as never}
-                  color={c.color}
-                  selected={filters.categoryId === c.id}
-                  onPress={() =>
-                    setFilters((f) => ({ ...f, categoryId: f.categoryId === c.id ? null : c.id }))
-                  }
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {accounts.length > 1 && (
-          <View style={{ gap: spacing.xs }}>
-            <Text variant="label" color="textMuted" style={{ fontSize: 10 }}>
-              {t.transactions.filterAccountLabel}
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-              <Chip
-                label={t.transactions.filterAll}
-                selected={filters.accountId === null}
-                onPress={() => setFilters((f) => ({ ...f, accountId: null }))}
-              />
-              {accounts.map((a) => (
+        {(usedCategories.length > 1 || accounts.length > 1) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.sm }}>
+            <Chip
+              label={t.transactions.filterAll}
+              selected={filters.categoryId === null && filters.accountId === null}
+              onPress={() => setFilters((f) => ({ ...f, categoryId: null, accountId: null }))}
+            />
+            {accounts.length > 1 &&
+              accounts.map((a) => (
                 <Chip
                   key={a.id}
                   label={a.name}
@@ -133,8 +106,20 @@ export default function TransactionsScreen() {
                   }
                 />
               ))}
-            </ScrollView>
-          </View>
+            {usedCategories.length > 1 &&
+              usedCategories.map((c) => (
+                <Chip
+                  key={c.id}
+                  label={tCategory(c.id, c.name)}
+                  icon={c.icon as never}
+                  color={c.color}
+                  selected={filters.categoryId === c.id}
+                  onPress={() =>
+                    setFilters((f) => ({ ...f, categoryId: f.categoryId === c.id ? null : c.id }))
+                  }
+                />
+              ))}
+          </ScrollView>
         )}
 
         {filtersActive && (

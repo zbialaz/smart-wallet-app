@@ -119,7 +119,7 @@ export default function AnalyticsScreen() {
   );
 
   const topExpenses = useMemo(
-    () => buildTopExpenses(transactions, categories, 5),
+    () => buildTopExpenses(transactions, categories, 3),
     [transactions, categories],
   );
 
@@ -150,25 +150,18 @@ export default function AnalyticsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        {/* Cabeçalho Humano e Direto */}
-        <FadeIn style={{ gap: 4 }}>
+        {/* Cabeçalho Limpo + Seletor de Mês */}
+        <FadeIn style={{ gap: spacing.sm }}>
           <Text variant="title">{t.dashboard.analyticsTitle}</Text>
-          <Text variant="caption" color="textMuted">
-            {t.dashboard.analyticsSubtitle}
-          </Text>
-        </FadeIn>
-
-        {/* Seletor de Mês */}
-        <FadeIn delay={35}>
           <MonthSwitcher month={month} onChange={setMonth} />
         </FadeIn>
 
-        {/* Total Gasto no Mês + Ritmo Diário */}
-        <FadeIn delay={60} style={{ gap: spacing.sm }}>
+        {/* Resumo Enxuto: Total do Mês + Média Diária e Projeção em uma única linha */}
+        <FadeIn delay={50} style={{ gap: spacing.sm }}>
           <SpendingComparison expense={summary.expense} />
 
           {metrics.expenseCount > 0 && (
-            <View style={styles.kpiRow}>
+            <View testID="month-projection-card" style={styles.kpiRow}>
               <View
                 style={[
                   styles.kpiCard,
@@ -188,114 +181,35 @@ export default function AnalyticsScreen() {
                   { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}>
                 <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                  {t.dashboard.kpiAvgTicketLabel}
-                </Text>
-                <Text variant="bodyStrong" style={{ fontSize: 16 }}>
-                  {showMoney(metrics.averagePerExpense)}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Projeção de Fechamento do Mês ("Ritmo do Mês" estilo Pierre / Copilot) */}
-          {isCurrentMonth && summary.expense.cents > 0 && (
-            <Card style={{ gap: spacing.xs }}>
-              <View
-                testID="month-projection-card"
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                  <Ionicons name="trending-up-outline" size={14} color={colors.primary} />
-                  <Text variant="label" color="textMuted" style={styles.kpiLabel}>
-                    {t.dashboard.projectionCardTitle}
-                  </Text>
-                </View>
-                <Text variant="caption" color="textMuted">
-                  {t.dashboard.projectionPaceNote(showMoney(projection.dailyPace))}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
-                  paddingTop: 2,
-                }}>
-                <Text variant="caption" color="textMuted">
-                  {t.dashboard.projectionEstimatedLabel}
+                  {isCurrentMonth
+                    ? t.dashboard.projectionEstimatedLabel.toUpperCase()
+                    : t.dashboard.kpiAvgTicketLabel}
                 </Text>
                 <Text
                   variant="bodyStrong"
                   style={{
-                    fontSize: 18,
+                    fontSize: 16,
                     color:
-                      projection.budgetStatus === 'exceeded'
+                      isCurrentMonth && projection.budgetStatus === 'exceeded'
                         ? colors.expense
-                        : projection.budgetStatus === 'within'
+                        : isCurrentMonth && projection.budgetStatus === 'within'
                           ? colors.income
                           : colors.text,
                   }}>
-                  {showMoney(projection.projectedTotal)}
+                  {isCurrentMonth
+                    ? showMoney(projection.projectedTotal)
+                    : showMoney(metrics.averagePerExpense)}
                 </Text>
               </View>
-
-              {projection.budgetStatus !== 'no-budget' &&
-                projection.projectedDiffFromBudget &&
-                projection.safeDailyAllowance && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.xs,
-                      paddingTop: 2,
-                    }}>
-                    <Ionicons
-                      name={
-                        projection.budgetStatus === 'exceeded'
-                          ? 'alert-circle'
-                          : 'checkmark-circle'
-                      }
-                      size={14}
-                      color={
-                        projection.budgetStatus === 'exceeded' ? colors.expense : colors.income
-                      }
-                    />
-                    <Text
-                      variant="caption"
-                      style={{
-                        flex: 1,
-                        color:
-                          projection.budgetStatus === 'exceeded' ? colors.expense : colors.income,
-                      }}>
-                      {projection.budgetStatus === 'exceeded'
-                        ? t.dashboard.projectionExceedBudget(
-                            showMoney(projection.projectedDiffFromBudget),
-                            showMoney(projection.safeDailyAllowance),
-                          )
-                        : t.dashboard.projectionWithinBudget(
-                            showMoney(projection.projectedDiffFromBudget),
-                          )}
-                    </Text>
-                  </View>
-                )}
-            </Card>
+            </View>
           )}
         </FadeIn>
 
         {/* 1. ONDE VOCÊ MAIS GASTOU — Nuvem de Bolas Proporcionais */}
-        <FadeIn delay={90} style={styles.section}>
-          <View style={{ gap: 2 }}>
-            <Text variant="label" color="textMuted" style={styles.sectionTitle}>
-              {t.dashboard.categoryCloudTitle}
-            </Text>
-            <Text variant="caption" color="textMuted">
-              {t.dashboard.categoryCloudHint}
-            </Text>
-          </View>
+        <FadeIn delay={80} style={styles.section}>
+          <Text variant="label" color="textMuted" style={styles.sectionTitle}>
+            {t.dashboard.categoryCloudTitle}
+          </Text>
 
           {packedCloud.bubbles.length === 0 ? (
             <EmptyState
@@ -484,7 +398,6 @@ export default function AnalyticsScreen() {
               <View style={{ gap: spacing.sm }}>
                 {topExpenses.map((item, index) => {
                   const catLabel = tCategory(item.transaction.categoryId, item.categoryName);
-                  const fillWidth = `${Math.max(6, Math.min(100, Math.round(item.shareOfMonth * 100)))}%` as `${number}%`;
 
                   return (
                     <Pressable
@@ -501,24 +414,6 @@ export default function AnalyticsScreen() {
                         { backgroundColor: colors.surface, borderColor: colors.border },
                       ]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                        <View
-                          style={[
-                            styles.rankBadge,
-                            {
-                              backgroundColor:
-                                index === 0 ? colors.expense + '22' : colors.surfaceRaised,
-                            },
-                          ]}>
-                          <Text
-                            variant="caption"
-                            style={{
-                              fontWeight: '800',
-                              color: index === 0 ? colors.expense : colors.textMuted,
-                            }}>
-                            {index + 1}º
-                          </Text>
-                        </View>
-
                         <IconBadge
                           icon={item.categoryIcon as never}
                           color={item.categoryColor}
@@ -539,24 +434,9 @@ export default function AnalyticsScreen() {
                             - {showMoney(item.transaction.amount)}
                           </Text>
                           <Text variant="caption" color="textMuted" style={{ fontSize: 11 }}>
-                            {t.dashboard.topExpensesShare(formatShare(item.shareOfMonth))}
+                            {formatShare(item.shareOfMonth)}
                           </Text>
                         </View>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.shareBarTrack,
-                          { backgroundColor: colors.surfaceRaised },
-                        ]}>
-                        <View
-                          style={{
-                            width: fillWidth,
-                            height: '100%',
-                            borderRadius: radius.pill,
-                            backgroundColor: item.categoryColor,
-                          }}
-                        />
                       </View>
                     </Pressable>
                   );

@@ -145,7 +145,6 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}>
         <FadeIn>
           <Text variant="title">{t.settings.title}</Text>
-          <Text color="textMuted">{t.settings.subtitle}</Text>
         </FadeIn>
 
         {/* 1. PERFIL E CONTA DO USUÁRIO */}
@@ -169,9 +168,6 @@ export default function SettingsScreen() {
                 </View>
 
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text variant="label" color="textMuted">
-                    {t.settings.connectedProfile}
-                  </Text>
                   <Text variant="heading" numberOfLines={1}>
                     {currentUser.name}
                   </Text>
@@ -502,65 +498,32 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 6. RESUMO DA CARTEIRA E ATALHOS */}
+        {/* 6. CATEGORIAS */}
         <FadeIn delay={170}>
-          <Card style={{ gap: spacing.md }}>
-            <Text variant="label" color="textMuted">
-              {t.settings.walletSummarySection}
-            </Text>
-
-            <Pressable
-              onPress={() => router.navigate('/(tabs)/accounts')}
-              style={({ pressed }) => [
-                styles.shortcutRow,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Ionicons name="wallet-outline" size={20} color={colors.primary} />
-                <View>
-                  <Text variant="bodyStrong">
-                    {t.settings.bankAccountsCount(accounts.length)}
-                  </Text>
-                  <Text variant="caption" color="textMuted">
-                    {t.accounts.consolidatedPrefix}{' '}
-                    {isBalanceHidden ? MASKED_BALANCE : consolidated.format()}
-                  </Text>
-                </View>
+          <Pressable
+            testID="manage-categories"
+            onPress={() => router.push('/categories')}
+            style={({ pressed }) => [
+              styles.shortcutRow,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <Ionicons name="pricetags-outline" size={20} color={colors.primary} />
+              <View>
+                <Text variant="bodyStrong">{t.settings.manageCategories}</Text>
+                <Text variant="caption" color="textMuted">
+                  {t.settings.activeCategoriesCount(
+                    categories.filter((c) => c.archivedAt === null).length,
+                  )}
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </Pressable>
-
-            <Pressable
-              testID="manage-categories"
-              onPress={() => router.push('/categories')}
-              style={({ pressed }) => [
-                styles.shortcutRow,
-                {
-                  backgroundColor: colors.surfaceRaised,
-                  borderColor: colors.border,
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Ionicons name="pricetags-outline" size={20} color={colors.primary} />
-                <View>
-                  <Text variant="bodyStrong">
-                    {t.settings.activeCategoriesCount(
-                      categories.filter((c) => c.archivedAt === null).length,
-                    )}
-                  </Text>
-                  <Text variant="caption" color="textMuted">
-                    {t.settings.manageCategories}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </Pressable>
-          </Card>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
         </FadeIn>
 
         {/* 6. SESSÃO E EXCLUSÃO DE CONTA */}

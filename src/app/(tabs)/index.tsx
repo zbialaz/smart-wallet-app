@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useI18n } from '@/shared/i18n';
 import { useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
@@ -12,7 +11,7 @@ import {
   TransactionRow,
 } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
-import { radius, spacing, useTheme } from '@/ui/theme';
+import { spacing, useTheme } from '@/ui/theme';
 import { WalletPocket } from '@/ui/wallet-pocket';
 
 /**
@@ -52,39 +51,12 @@ export default function DashboardScreen() {
           />
         </FadeIn>
 
-        {/* Meta mensal (se definida) + Atalho rápido para a aba Analytics */}
-        <FadeIn delay={90} style={{ gap: spacing.md }}>
-          {budget && <BudgetProgressCard spent={summary.expense} budget={budget} />}
-
-          <Pressable
-            testID="open-analytics-banner"
-            onPress={() => router.navigate('/(tabs)/analytics')}
-            style={({ pressed }) => [
-              styles.analyticsBanner,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.primary + '38',
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}>
-            <View
-              style={[
-                styles.analyticsIconWrap,
-                { backgroundColor: colors.primary + '1C' },
-              ]}>
-              <Ionicons name="pie-chart" size={18} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="bodyStrong" style={{ fontSize: 14 }}>
-                {t.dashboard.openAnalyticsBannerTitle}
-              </Text>
-              <Text variant="caption" color="textMuted" numberOfLines={1}>
-                {t.dashboard.openAnalyticsBannerSub}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </Pressable>
-        </FadeIn>
+        {/* Meta mensal (se definida) */}
+        {budget && (
+          <FadeIn delay={90}>
+            <BudgetProgressCard spent={summary.expense} budget={budget} />
+          </FadeIn>
+        )}
 
         {/* Divisor Delicado */}
         <View style={[styles.thinDivider, { backgroundColor: colors.border }]} />
@@ -138,21 +110,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: 110,
     gap: spacing.xl,
-  },
-  analyticsBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-  },
-  analyticsIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   thinDivider: {
     height: 1,

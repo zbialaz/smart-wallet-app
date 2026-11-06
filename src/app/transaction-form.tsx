@@ -83,6 +83,7 @@ export default function TransactionFormScreen() {
   const [dateText, setDateText] = useState(formatDateBR(today()));
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [showQuickPhrase, setShowQuickPhrase] = useState(false);
   const [quickPhrase, setQuickPhrase] = useState('');
   const [quickEntryApplied, setQuickEntryApplied] = useState(false);
   const [showReceiptPaste, setShowReceiptPaste] = useState(false);
@@ -194,6 +195,7 @@ export default function TransactionFormScreen() {
       setIsRecurring(true);
     }
     setQuickEntryApplied(true);
+    setShowQuickPhrase(false);
     setErrors({});
   }
 
@@ -391,245 +393,6 @@ export default function TransactionFormScreen() {
             )}
           </View>
 
-          {/* Lançamento Rápido por Frase ("Modo Pierre") */}
-          {!isEditing && !isTransfer && (
-            <Card style={{ gap: spacing.sm }}>
-              <View
-                testID="quick-entry-card"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                <Ionicons name="sparkles" size={15} color={colors.primary} />
-                <Text variant="caption" style={{ color: colors.primary, fontWeight: '700', letterSpacing: 0.6 }}>
-                  {t.transactions.quickEntryTitle}
-                </Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <TextField
-                    testID="quick-entry-input"
-                    value={quickPhrase}
-                    onChangeText={(val) => {
-                      setQuickPhrase(val);
-                      if (quickEntryApplied) setQuickEntryApplied(false);
-                    }}
-                    placeholder={t.transactions.quickEntryPlaceholder}
-                    returnKeyType="done"
-                    onSubmitEditing={onApplyQuickEntry}
-                  />
-                </View>
-                <Pressable
-                  testID="quick-entry-apply-btn"
-                  disabled={!quickPhrase.trim()}
-                  onPress={onApplyQuickEntry}
-                  style={{
-                    paddingHorizontal: spacing.md,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: quickPhrase.trim() ? colors.primary : colors.surfaceRaised,
-                    opacity: quickPhrase.trim() ? 1 : 0.5,
-                  }}>
-                  <Text
-                    variant="caption"
-                    style={{
-                      color: quickPhrase.trim() ? '#FFFFFF' : colors.textMuted,
-                      fontWeight: '700',
-                    }}>
-                    {t.transactions.quickEntryApplyBtn}
-                  </Text>
-                </Pressable>
-              </View>
-
-              {quickEntryApplied && (
-                <View
-                  testID="quick-entry-applied-banner"
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    paddingVertical: 4,
-                  }}>
-                  <Ionicons name="checkmark-circle" size={14} color={colors.income} />
-                  <Text variant="caption" style={{ color: colors.income, flex: 1 }}>
-                    {t.transactions.quickEntryAppliedBanner}
-                  </Text>
-                </View>
-              )}
-            </Card>
-          )}
-
-          {/* Leitor de Nota Fiscal / Cupom Fiscal (Gastos) */}
-          {!isEditing && !isTransfer && type === 'expense' && (
-            <Card style={{ gap: spacing.sm }}>
-              <View
-                testID="receipt-scanner-card"
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
-                  <Ionicons name="receipt-outline" size={16} color={colors.primary} />
-                  <View style={{ flex: 1 }}>
-                    <Text variant="caption" style={{ color: colors.primary, fontWeight: '700', letterSpacing: 0.6 }}>
-                      {t.transactions.scanReceiptTitle}
-                    </Text>
-                    <Text variant="caption" color="textMuted">
-                      {t.transactions.scanReceiptSubtitle}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-                <Pressable
-                  testID="scan-receipt-camera-btn"
-                  disabled={scanningReceipt}
-                  onPress={onScanReceiptCamera}
-                  style={{
-                    flex: 1,
-                    minWidth: 96,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: spacing.sm,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.primary + '1F',
-                    borderWidth: 1,
-                    borderColor: colors.primary + '44',
-                  }}>
-                  <Ionicons name="camera-outline" size={16} color={colors.primary} />
-                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
-                    {t.transactions.scanReceiptCamera}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  testID="scan-receipt-gallery-btn"
-                  disabled={scanningReceipt}
-                  onPress={onScanReceiptGallery}
-                  style={{
-                    flex: 1,
-                    minWidth: 96,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: spacing.sm,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.primary + '1F',
-                    borderWidth: 1,
-                    borderColor: colors.primary + '44',
-                  }}>
-                  <Ionicons name="images-outline" size={16} color={colors.primary} />
-                  <Text variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
-                    {t.transactions.scanReceiptGallery}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  testID="scan-receipt-paste-toggle"
-                  disabled={scanningReceipt}
-                  onPress={() => setShowReceiptPaste((v) => !v)}
-                  style={{
-                    flex: 1,
-                    minWidth: 96,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: spacing.sm,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: showReceiptPaste ? colors.primary + '2E' : colors.surfaceRaised,
-                    borderWidth: 1,
-                    borderColor: showReceiptPaste ? colors.primary : colors.border,
-                  }}>
-                  <Ionicons
-                    name="document-text-outline"
-                    size={16}
-                    color={showReceiptPaste ? colors.primary : colors.text}
-                  />
-                  <Text
-                    variant="caption"
-                    style={{
-                      color: showReceiptPaste ? colors.primary : colors.text,
-                      fontWeight: '600',
-                    }}>
-                    {t.transactions.scanReceiptPasteToggle}
-                  </Text>
-                </Pressable>
-              </View>
-
-              {showReceiptPaste && (
-                <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
-                  <TextField
-                    testID="receipt-text-input"
-                    value={receiptTextInput}
-                    onChangeText={setReceiptTextInput}
-                    placeholder={t.transactions.scanReceiptTextPlaceholder}
-                    multiline
-                    style={{ minHeight: 76, textAlignVertical: 'top' }}
-                  />
-                  <Button
-                    testID="extract-receipt-text-btn"
-                    label={t.transactions.scanReceiptExtractBtn}
-                    onPress={onScanReceiptText}
-                    loading={scanningReceipt}
-                    icon="sparkles"
-                  />
-                </View>
-              )}
-
-              {scanningReceipt && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: 2 }}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text variant="caption" color="textMuted">
-                    {t.transactions.scanReceiptAnalyzing}
-                  </Text>
-                </View>
-              )}
-
-              {scannedReceipt && !scanningReceipt && (
-                <View
-                  testID="receipt-detected-banner"
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                    padding: spacing.sm,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.income + '18',
-                    borderWidth: 1,
-                    borderColor: colors.income + '44',
-                  }}>
-                  <Ionicons name="checkmark-circle" size={16} color={colors.income} />
-                  <Text variant="caption" style={{ color: colors.income, flex: 1, fontWeight: '600' }}>
-                    {t.transactions.scanReceiptDetected(
-                      scannedReceipt.segmentLabel,
-                      scannedReceipt.amount.format(),
-                    )}
-                  </Text>
-                </View>
-              )}
-
-              {receiptError && !scanningReceipt && (
-                <View style={{ gap: 4 }}>
-                  <Text variant="caption" color="expense" testID="receipt-scan-error">
-                    {receiptError}
-                  </Text>
-                  {!geminiApiKey && (
-                    <Pressable onPress={() => router.push('/settings')} testID="configure-gemini-from-receipt">
-                      <Text
-                        variant="caption"
-                        style={{ color: colors.primary, textDecorationLine: 'underline' }}>
-                        {t.dashboard.askGeminiConfigureLink}
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-              )}
-            </Card>
-          )}
-
           <Field label={t.transactions.amountLabel} error={errors.amount}>
             <AmountInput value={amount} onChange={setAmount} accent={accent} autoFocus={!isEditing} invalid={!!errors.amount} />
             {singleExpenseAlert && selectedCategory && (
@@ -656,6 +419,196 @@ export default function TransactionFormScreen() {
               </View>
             )}
           </Field>
+
+          {/* Barra única e minimalista de atalhos inteligentes (Frase rápida & Nota Fiscal) */}
+          {!isEditing && !isTransfer && (
+            <View testID="quick-entry-card" style={{ gap: spacing.sm }}>
+              <View
+                testID="receipt-scanner-card"
+                style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+                <Chip
+                  label={t.transactions.quickEntryTitle}
+                  icon="sparkles"
+                  color={colors.primary}
+                  selected={showQuickPhrase}
+                  onPress={() => {
+                    setShowQuickPhrase((v) => !v);
+                    setShowReceiptPaste(false);
+                  }}
+                />
+                {type === 'expense' && (
+                  <>
+                    <Pressable
+                      testID="scan-receipt-camera-btn"
+                      disabled={scanningReceipt}
+                      onPress={onScanReceiptCamera}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingVertical: 8,
+                        paddingHorizontal: spacing.md,
+                        borderRadius: radius.pill,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}>
+                      <Ionicons name="camera-outline" size={15} color={colors.primary} />
+                      <Text variant="caption" style={{ fontWeight: '600' }}>
+                        {t.transactions.scanReceiptCamera}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      testID="scan-receipt-gallery-btn"
+                      disabled={scanningReceipt}
+                      onPress={onScanReceiptGallery}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingVertical: 8,
+                        paddingHorizontal: spacing.md,
+                        borderRadius: radius.pill,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}>
+                      <Ionicons name="images-outline" size={15} color={colors.primary} />
+                      <Text variant="caption" style={{ fontWeight: '600' }}>
+                        {t.transactions.scanReceiptGallery}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      testID="scan-receipt-paste-toggle"
+                      disabled={scanningReceipt}
+                      onPress={() => {
+                        setShowReceiptPaste((v) => !v);
+                        setShowQuickPhrase(false);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingVertical: 8,
+                        paddingHorizontal: spacing.md,
+                        borderRadius: radius.pill,
+                        backgroundColor: showReceiptPaste ? colors.primary + '22' : colors.surface,
+                        borderWidth: 1,
+                        borderColor: showReceiptPaste ? colors.primary : colors.border,
+                      }}>
+                      <Ionicons
+                        name="document-text-outline"
+                        size={15}
+                        color={showReceiptPaste ? colors.primary : colors.textMuted}
+                      />
+                      <Text
+                        variant="caption"
+                        style={{
+                          color: showReceiptPaste ? colors.primary : colors.text,
+                          fontWeight: '600',
+                        }}>
+                        {t.transactions.scanReceiptPasteToggle}
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+
+              {showQuickPhrase && (
+                <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <TextField
+                      testID="quick-entry-input"
+                      value={quickPhrase}
+                      onChangeText={(val) => {
+                        setQuickPhrase(val);
+                        if (quickEntryApplied) setQuickEntryApplied(false);
+                      }}
+                      placeholder={t.transactions.quickEntryPlaceholder}
+                      returnKeyType="done"
+                      onSubmitEditing={onApplyQuickEntry}
+                    />
+                  </View>
+                  <Pressable
+                    testID="quick-entry-apply-btn"
+                    disabled={!quickPhrase.trim()}
+                    onPress={onApplyQuickEntry}
+                    style={{
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.md,
+                      borderRadius: radius.md,
+                      backgroundColor: quickPhrase.trim() ? colors.primary : colors.surfaceRaised,
+                      opacity: quickPhrase.trim() ? 1 : 0.5,
+                    }}>
+                    <Text
+                      variant="caption"
+                      style={{
+                        color: quickPhrase.trim() ? '#FFFFFF' : colors.textMuted,
+                        fontWeight: '700',
+                      }}>
+                      {t.transactions.quickEntryApplyBtn}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {showReceiptPaste && (
+                <View style={{ gap: spacing.sm }}>
+                  <TextField
+                    testID="receipt-text-input"
+                    value={receiptTextInput}
+                    onChangeText={setReceiptTextInput}
+                    placeholder={t.transactions.scanReceiptTextPlaceholder}
+                    multiline
+                    style={{ minHeight: 72, textAlignVertical: 'top' }}
+                  />
+                  <Button
+                    testID="extract-receipt-text-btn"
+                    label={t.transactions.scanReceiptExtractBtn}
+                    onPress={onScanReceiptText}
+                    loading={scanningReceipt}
+                    icon="sparkles"
+                  />
+                </View>
+              )}
+
+              {scanningReceipt && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text variant="caption" color="textMuted">
+                    {t.transactions.scanReceiptAnalyzing}
+                  </Text>
+                </View>
+              )}
+
+              {scannedReceipt && !scanningReceipt && (
+                <View
+                  testID="receipt-detected-banner"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                    paddingVertical: 4,
+                  }}>
+                  <Ionicons name="checkmark-circle" size={15} color={colors.income} />
+                  <Text variant="caption" style={{ color: colors.income, flex: 1, fontWeight: '600' }}>
+                    {t.transactions.scanReceiptDetected(
+                      scannedReceipt.segmentLabel,
+                      scannedReceipt.amount.format(),
+                    )}
+                  </Text>
+                </View>
+              )}
+
+              {receiptError && !scanningReceipt && (
+                <Text variant="caption" color="expense" testID="receipt-scan-error">
+                  {receiptError}
+                </Text>
+              )}
+            </View>
+          )}
 
           <Field label={t.transactions.descriptionLabel} error={errors.description}>
             <TextField
