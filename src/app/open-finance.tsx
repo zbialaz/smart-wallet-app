@@ -155,20 +155,13 @@ export default function OpenFinanceScreen() {
             </View>
           </Field>
 
-          {/* 2. Sincronização Simulada com 1 Toque + Atalho de Extrato Real */}
+          {/* 2. Sincronização Simulada com 1 Toque */}
           <Card style={{ gap: spacing.sm }}>
             <Button
               testID="simulate-open-finance-btn"
               label={t.accounts.openFinanceDemoBtn}
               icon="flash"
               onPress={handleSimulateOpenFinance}
-            />
-            <Button
-              testID="open-statement-import-btn"
-              label={t.settings.importTransactions}
-              variant="secondary"
-              icon="document-text-outline"
-              onPress={() => router.push('/import')}
             />
           </Card>
 

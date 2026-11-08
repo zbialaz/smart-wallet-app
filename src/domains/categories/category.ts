@@ -18,6 +18,7 @@ export interface Category {
 
 /** ID fixo da categoria "Outros" — o gráfico agrupa fatias pequenas nela (US-013.3). */
 export const OTHER_EXPENSE_CATEGORY_ID = 'cat-other';
+export const OTHER_INCOME_CATEGORY_ID = 'cat-other-income';
 
 /**
  * Categorias padrão (US-010). IDs fixos (não aleatórios) para que o seed seja
