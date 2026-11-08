@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -12,12 +11,8 @@ import {
 } from 'react-native';
 
 import {
-  authenticatePluggy,
   buildSampleOpenFinanceTransactions,
   classifyPluggyTransactions,
-  createPluggyConnectToken,
-  createPluggySandboxItem,
-  fetchPluggyItemTransactions,
   type ClassifiedBankTransaction,
 } from '@/domains/open-finance/pluggy-sync';
 import { formatRelativeDate, today } from '@/shared/date';
@@ -31,7 +26,6 @@ import {
   Field,
   IconBadge,
   Screen,
-  TextField,
 } from '@/ui/components';
 import { Text } from '@/ui/text';
 import { radius, spacing, useTheme } from '@/ui/theme';
@@ -46,9 +40,7 @@ export default function OpenFinanceScreen() {
   const categories = useWallet((s) => s.categories);
   const transactions = useWallet((s) => s.transactions);
   const learnedCategoryRules = useWallet((s) => s.learnedCategoryRules);
-  const openFinanceConfig = useWallet((s) => s.openFinanceConfig);
   const importedOpenFinanceIds = useWallet((s) => s.importedOpenFinanceIds);
-  const setOpenFinanceConfig = useWallet((s) => s.setOpenFinanceConfig);
   const importOpenFinanceTransactions = useWallet((s) => s.importOpenFinanceTransactions);
 
   const categoryMap = useCategoryMap();
@@ -56,14 +48,7 @@ export default function OpenFinanceScreen() {
   const [targetAccountId, setTargetAccountId] = useState<string | null>(
     params.accountId ?? accounts[0]?.id ?? null,
   );
-  const [clientId, setClientId] = useState(openFinanceConfig.clientId);
-  const [clientSecret, setClientSecret] = useState(openFinanceConfig.clientSecret);
-  const [itemId, setItemId] = useState(openFinanceConfig.itemId ?? '');
-  const [showCredentials, setShowCredentials] = useState(
-    Boolean(openFinanceConfig.clientId && openFinanceConfig.clientSecret),
-  );
 
-  const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -94,70 +79,6 @@ export default function OpenFinanceScreen() {
       classified.filter((item) => !item.alreadyImported).map((item) => item.externalId),
     );
     setSelectedIds(initialSelected);
-  }
-
-  async function handleOpenConnectWidget() {
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
-    await setOpenFinanceConfig({ clientId, clientSecret, itemId });
-
-    const authRes = await authenticatePluggy({ clientId, clientSecret });
-    if (!authRes.ok) {
-      setLoading(false);
-      setError(authRes.error);
-      return;
-    }
-
-    const tokenRes = await createPluggyConnectToken({ apiKey: authRes.value });
-    setLoading(false);
-    if (!tokenRes.ok) {
-      setError(tokenRes.error);
-      return;
-    }
-
-    const connectUrl = `https://connect.pluggy.ai?connect_token=${encodeURIComponent(tokenRes.value)}`;
-    await WebBrowser.openBrowserAsync(connectUrl);
-  }
-
-  async function handleSyncRealOpenFinance() {
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
-
-    let resolvedItemId = itemId.trim();
-
-    // Se o usuário preencheu Client ID + Secret mas ainda não tem Item ID, cria automaticamente
-    // uma conexão de teste no Sandbox oficial da Pluggy (Pluggy Bank: user-ok / password-ok)
-    if (!resolvedItemId && clientId.trim() && clientSecret.trim()) {
-      const sandboxRes = await createPluggySandboxItem({
-        clientId,
-        clientSecret,
-      });
-      if (!sandboxRes.ok) {
-        setLoading(false);
-        setError(sandboxRes.error);
-        return;
-      }
-      resolvedItemId = sandboxRes.value;
-      setItemId(resolvedItemId);
-    }
-
-    await setOpenFinanceConfig({ clientId, clientSecret, itemId: resolvedItemId });
-
-    const fetched = await fetchPluggyItemTransactions({
-      clientId,
-      clientSecret,
-      itemId: resolvedItemId,
-    });
-    setLoading(false);
-
-    if (!fetched.ok) {
-      setError(fetched.error);
-      return;
-    }
-
-    loadPreview(fetched.value);
   }
 
   function handleSimulateOpenFinance() {
@@ -234,89 +155,21 @@ export default function OpenFinanceScreen() {
             </View>
           </Field>
 
-          {/* 2. Ação Rápida de Teste + Conexão Pluggy Open Finance */}
-          <Card style={{ gap: spacing.md }}>
+          {/* 2. Sincronização Simulada com 1 Toque + Atalho de Extrato Real */}
+          <Card style={{ gap: spacing.sm }}>
             <Button
               testID="simulate-open-finance-btn"
               label={t.accounts.openFinanceDemoBtn}
               icon="flash"
               onPress={handleSimulateOpenFinance}
             />
-
-            <Pressable
-              testID="toggle-pluggy-credentials"
-              onPress={() => setShowCredentials((v) => !v)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: spacing.xs,
-              }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="key-outline" size={15} color={colors.primary} />
-                <Text variant="label" style={{ fontSize: 11, color: colors.primary }}>
-                  {t.accounts.openFinanceCredentialsTitle}
-                </Text>
-              </View>
-              <Ionicons
-                name={showCredentials ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={colors.textMuted}
-              />
-            </Pressable>
-
-            {showCredentials && (
-              <View style={{ gap: spacing.md, paddingTop: spacing.xs }}>
-                <Field label={t.accounts.openFinanceClientIdLabel}>
-                  <TextField
-                    testID="pluggy-client-id"
-                    value={clientId}
-                    onChangeText={setClientId}
-                    placeholder="Ex.: 8f14e45f-ceea-467a..."
-                    autoCapitalize="none"
-                  />
-                </Field>
-
-                <Field label={t.accounts.openFinanceClientSecretLabel}>
-                  <TextField
-                    testID="pluggy-client-secret"
-                    value={clientSecret}
-                    onChangeText={setClientSecret}
-                    placeholder="Seu Client Secret da Pluggy"
-                    secureTextEntry
-                    autoCapitalize="none"
-                  />
-                </Field>
-
-                <Field label={t.accounts.openFinanceItemIdLabel}>
-                  <TextField
-                    testID="pluggy-item-id"
-                    value={itemId}
-                    onChangeText={setItemId}
-                    placeholder="Opcional: deixe em branco para gerar Sandbox automático"
-                    autoCapitalize="none"
-                  />
-                </Field>
-
-                <View style={{ gap: spacing.sm }}>
-                  <Button
-                    testID="sync-real-open-finance-btn"
-                    label={t.accounts.openFinanceSyncBtn}
-                    icon="sync"
-                    loading={loading}
-                    onPress={handleSyncRealOpenFinance}
-                  />
-                  <Button
-                    testID="open-pluggy-widget-btn"
-                    label={t.accounts.openFinanceConnectWidgetBtn}
-                    variant="secondary"
-                    icon="open-outline"
-                    loading={loading}
-                    onPress={handleOpenConnectWidget}
-                  />
-                </View>
-              </View>
-            )}
+            <Button
+              testID="open-statement-import-btn"
+              label={t.settings.importTransactions}
+              variant="secondary"
+              icon="document-text-outline"
+              onPress={() => router.push('/import')}
+            />
           </Card>
 
           {error && (
