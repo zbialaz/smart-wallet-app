@@ -193,8 +193,14 @@ export default function TransactionFormScreen() {
       setAccountId(parsed.accountId);
     }
     setDateText(formatDateBR(parsed.date));
-    if (parsed.isRecurring) {
+    if (parsed.installments > 1) {
+      setInstallments(parsed.installments);
+      setShowInstallments(true);
+      setIsRecurring(false);
+    } else if (parsed.isRecurring) {
       setIsRecurring(true);
+      setInstallments(1);
+      setShowInstallments(false);
     }
     setQuickEntryApplied(true);
     setShowQuickPhrase(false);

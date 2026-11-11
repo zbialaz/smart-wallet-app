@@ -1,4 +1,5 @@
 import { normalizeText } from '@/shared/text';
+import type { TransactionType } from '@/shared/transaction-type';
 
 import type { Transaction } from './transaction';
 
@@ -13,20 +14,27 @@ export interface TransactionFilters {
   query: string;
   categoryId: string | null;
   accountId: string | null;
+  type?: TransactionType | null;
 }
 
 export const EMPTY_FILTERS: TransactionFilters = {
   query: '',
   categoryId: null,
   accountId: null,
+  type: null,
 };
 
 export function hasActiveFilters(filters: TransactionFilters): boolean {
-  return normalizeText(filters.query) !== '' || filters.categoryId !== null || filters.accountId !== null;
+  return (
+    normalizeText(filters.query) !== '' ||
+    filters.categoryId !== null ||
+    filters.accountId !== null ||
+    Boolean(filters.type)
+  );
 }
 
 /**
- * Aplica busca + categoria + conta em COMBINAÇÃO (AND) — US-005.4.
+ * Aplica busca + categoria + conta + tipo em COMBINAÇÃO (AND) — US-005.4.
  * O período (mês) já vem aplicado pela lista de entrada (US-005.2).
  */
 export function filterTransactions(
@@ -36,6 +44,7 @@ export function filterTransactions(
   const query = normalizeText(filters.query);
 
   return transactions.filter((t) => {
+    if (filters.type && t.type !== filters.type) return false;
     if (filters.categoryId && t.categoryId !== filters.categoryId) return false;
     if (filters.accountId && t.accountId !== filters.accountId) return false;
     if (query && !normalizeText(t.description ?? '').includes(query)) return false;

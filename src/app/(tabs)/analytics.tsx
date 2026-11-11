@@ -533,13 +533,21 @@ export default function AnalyticsScreen() {
                     borderColor: getReadableAccent(activeCloudItem.color, isDark) + '55',
                     borderWidth: 1,
                   }}>
-                  <View
-                    style={{
+                  <Pressable
+                    testID="open-category-transactions"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(tabs)/transactions',
+                        params: { categoryId: activeCloudItem.categoryId },
+                      })
+                    }
+                    style={({ pressed }) => ({
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: spacing.sm,
-                    }}>
+                      opacity: pressed ? 0.75 : 1,
+                    })}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
                       <IconBadge
                         icon={activeCloudItem.icon as never}
@@ -557,20 +565,23 @@ export default function AnalyticsScreen() {
                       </View>
                     </View>
 
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text
-                        variant="bodyStrong"
-                        style={{
-                          color: getReadableAccent(activeCloudItem.color, isDark),
-                          fontSize: 16,
-                        }}>
-                        {showMoney(activeCloudItem.total)}
-                      </Text>
-                      <Text variant="caption" color="textMuted">
-                        {formatShare(activeCloudItem.share)}
-                      </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text
+                          variant="bodyStrong"
+                          style={{
+                            color: getReadableAccent(activeCloudItem.color, isDark),
+                            fontSize: 16,
+                          }}>
+                          {showMoney(activeCloudItem.total)}
+                        </Text>
+                        <Text variant="caption" color="textMuted">
+                          {formatShare(activeCloudItem.share)}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
                     </View>
-                  </View>
+                  </Pressable>
 
                   {/* Limite opcional por Categoria (Envelopes Simples) */}
                   {activeCategoryBudget && !editingCatLimit ? (

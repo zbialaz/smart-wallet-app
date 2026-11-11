@@ -33,6 +33,7 @@ export interface QuickEntryParsed {
   accountId: string | null;
   date: ISODate;
   isRecurring: boolean;
+  installments: number;
 }
 
 const INCOME_KEYWORDS = [
@@ -106,7 +107,8 @@ export function extractMoneyFromPhrase(raw: string): {
 } {
   // Remove datas DD/MM/YYYY ou DD/MM temporariamente para não confundir com números
   const maskedDates = raw.replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ');
-  const maskedDays = maskedDates.replace(/\bdia\s+\d{1,2}\b/gi, ' ');
+  const maskedInstallments = maskedDates.replace(/\b\d{1,2}\s*x\b/gi, ' ');
+  const maskedDays = maskedInstallments.replace(/\bdia\s+\d{1,2}\b/gi, ' ');
 
   // Procura padrões como "R$ 1.234,56", "45,90", "45.90", "1.200", "150"
   const regex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})+,\d{2}|\d+[.,]\d{1,2}|\d{1,6})\b/i;
@@ -217,6 +219,7 @@ function cleanDescriptionFromPhrase(params: {
     /\b(?:r\$|reais|real|conto|contos|pila|pilas)\b/gi,
     /\b(?:hoje|ontem|anteontem|yesterday|today|ayer|recorrente|mensal|todo\s+m[eê]s)\b/gi,
     /\b(?:no\s+cart[aã]o|no\s+cr[eé]dito|no\s+d[eé]bito|no\s+pix|via\s+pix|pelo\s+pix)\b/gi,
+    /\b(?:parcelado\s+)?(?:em\s+)?\d{1,2}\s*x\b/gi,
   ];
   for (const pattern of noisePatterns) {
     working = working.replace(pattern, ' ');
@@ -272,8 +275,13 @@ export function parseQuickEntry(params: {
     date = addDays(params.today, -1);
   }
 
-  // 5. Recorrência
-  const isRecurring = RECURRING_KEYWORDS.some((kw) => norm.includes(normalizeText(kw)));
+  // 5. Recorrência e Parcelamento (ex.: "em 3x", "10x")
+  const installmentMatch = /\b(?:em\s+|parcelado\s+(?:em\s+)?)?(\d{1,2})\s*x\b/i.exec(raw);
+  const parsedInstallments = installmentMatch ? Number(installmentMatch[1]) : 1;
+  const installments =
+    !isIncome && parsedInstallments >= 2 && parsedInstallments <= 24 ? parsedInstallments : 1;
+  const isRecurring =
+    installments === 1 && RECURRING_KEYWORDS.some((kw) => norm.includes(normalizeText(kw)));
 
   // 6. Descrição limpa
   const description = cleanDescriptionFromPhrase({
@@ -312,5 +320,6 @@ export function parseQuickEntry(params: {
     accountId,
     date,
     isRecurring,
+    installments,
   };
 }

@@ -37,26 +37,38 @@ export default function TransactionsScreen() {
   const setRecurringRuleActive = useWallet((s) => s.setRecurringRuleActive);
   const deleteRecurringRule = useWallet((s) => s.deleteRecurringRule);
 
-  const { accountId: paramAccountId, categoryId: paramCategoryId } = useLocalSearchParams<{
+  const {
+    accountId: paramAccountId,
+    categoryId: paramCategoryId,
+    type: paramType,
+  } = useLocalSearchParams<{
     accountId?: string;
     categoryId?: string;
+    type?: 'income' | 'expense';
   }>();
 
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
     ...EMPTY_FILTERS,
     accountId: paramAccountId ?? null,
     categoryId: paramCategoryId ?? null,
+    type: paramType === 'income' || paramType === 'expense' ? paramType : null,
   }));
 
   useEffect(() => {
-    if (paramAccountId !== undefined || paramCategoryId !== undefined) {
+    if (paramAccountId !== undefined || paramCategoryId !== undefined || paramType !== undefined) {
       setFilters((f) => ({
         ...f,
         accountId: paramAccountId ?? f.accountId,
         categoryId: paramCategoryId ?? f.categoryId,
+        type:
+          paramType === 'income' || paramType === 'expense'
+            ? paramType
+            : paramType === undefined
+              ? f.type
+              : null,
       }));
     }
-  }, [paramAccountId, paramCategoryId]);
+  }, [paramAccountId, paramCategoryId, paramType]);
 
   const filtersActive = hasActiveFilters(filters);
 
@@ -114,8 +126,19 @@ export default function TransactionsScreen() {
             contentContainerStyle={{ gap: spacing.sm }}>
             <Chip
               label={t.transactions.filterAll}
-              selected={filters.categoryId === null && filters.accountId === null}
-              onPress={() => setFilters((f) => ({ ...f, categoryId: null, accountId: null }))}
+              selected={
+                filters.categoryId === null &&
+                filters.accountId === null &&
+                !filters.type
+              }
+              onPress={() =>
+                setFilters((f) => ({
+                  ...f,
+                  categoryId: null,
+                  accountId: null,
+                  type: null,
+                }))
+              }
             />
             {accounts.length > 1 &&
               accounts.map((a) => (

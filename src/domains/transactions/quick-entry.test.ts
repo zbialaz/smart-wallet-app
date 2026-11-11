@@ -97,4 +97,20 @@ describe('parseQuickEntry ("Modo Pierre" / Natural Language Entry)', () => {
     expect(res?.categoryId).toBe('cat-subscriptions');
     expect(res?.isRecurring).toBe(true);
   });
+
+  it('reconhece compras parceladas como "Tênis 300 em 3x no Nubank" e extrai installments = 3', () => {
+    const res = parseQuickEntry({
+      text: 'Tênis 300 em 3x no Nubank',
+      accounts: MOCK_ACCOUNTS,
+      categories: DEFAULT_CATEGORIES,
+      today: TODAY,
+    });
+
+    expect(res?.type).toBe('expense');
+    expect(res?.amount?.cents).toBe(30000);
+    expect(res?.description).toBe('Tênis');
+    expect(res?.accountId).toBe('acc-nubank');
+    expect(res?.installments).toBe(3);
+    expect(res?.isRecurring).toBe(false);
+  });
 });

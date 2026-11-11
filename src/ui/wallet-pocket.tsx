@@ -235,23 +235,45 @@ export function WalletPocket({
                 </View>
               </View>
 
-              {/* Entradas e Saídas do Mês */}
+              {/* Entradas e Saídas do Mês (toque filtra o extrato por receitas ou gastos) */}
               <View style={styles.walletFooter}>
-                <View style={styles.footerCol}>
+                <Pressable
+                  testID="wallet-footer-income"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/transactions',
+                      params: { type: 'income' },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.footerCol,
+                    pressed && { opacity: 0.75 },
+                  ]}>
                   <Text style={styles.footerLabel}>{t.wallet.monthlyIncome}</Text>
                   <Text style={styles.footerValueIncome}>
                     {isBalanceHidden ? `+${MASKED_BALANCE}` : `+${income.format()}`}
                   </Text>
-                </View>
+                </Pressable>
 
                 <View style={styles.footerDivider} />
 
-                <View style={styles.footerCol}>
+                <Pressable
+                  testID="wallet-footer-expense"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/transactions',
+                      params: { type: 'expense' },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.footerCol,
+                    pressed && { opacity: 0.75 },
+                  ]}>
                   <Text style={styles.footerLabel}>{t.wallet.monthlyExpense}</Text>
                   <Text style={styles.footerValueExpense}>
                     {isBalanceHidden ? `-${MASKED_BALANCE}` : `-${expense.format()}`}
                   </Text>
-                </View>
+                </Pressable>
               </View>
             </View>
           </View>
