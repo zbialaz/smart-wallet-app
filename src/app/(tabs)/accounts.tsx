@@ -97,6 +97,23 @@ export default function AccountsScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
+                  testID={`edit-bank-account-${account.name}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.common.saveChanges}
+                  onPress={() => router.push({ pathname: '/account-form', params: { id: account.id } })}
+                  hitSlop={10}
+                  style={({ pressed }) => ({
+                    width: 34,
+                    height: 34,
+                    borderRadius: radius.sm,
+                    backgroundColor: colors.surfaceRaised,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: pressed ? 0.7 : 1,
+                  })}>
+                  <Ionicons name="pencil-outline" size={16} color={colors.textMuted} />
+                </Pressable>
+                <Pressable
                   testID={`delete-bank-account-${account.name}`}
                   accessibilityRole="button"
                   accessibilityLabel={t.accounts.deleteTitle(account.name)}

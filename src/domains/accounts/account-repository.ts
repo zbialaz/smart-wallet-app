@@ -82,6 +82,23 @@ export function createAccountRepository(db: SQLiteDatabase) {
       );
     },
 
+    async update(
+      accountId: string,
+      userId: string,
+      data: { name: string; color: string; initialBalance: Money },
+    ): Promise<void> {
+      await db.runAsync(
+        `UPDATE accounts
+         SET name = ?, color = ?, initial_balance_cents = ?
+         WHERE id = ? AND user_id = ?`,
+        data.name,
+        data.color,
+        data.initialBalance.cents,
+        accountId,
+        userId,
+      );
+    },
+
     /** Vincula contas antigas (criadas antes do sistema de login) ao primeiro usuário cadastrado. */
     async attachOrphanAccountsToUser(userId: string): Promise<void> {
       await db.runAsync(

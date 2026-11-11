@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest';
 import type { ISODate, YearMonth } from '@/shared/date';
 
 import {
+  buildInstallmentTransactions,
   dueDateForMonth,
   materializeDueRecurringTransactions,
   parseRecurringRules,
   toggleRecurringRule,
   type RecurringRule,
 } from './recurring';
+import { Money } from '@/shared/money';
 
 const baseRule: RecurringRule = {
   id: 'rec-1',
@@ -84,6 +86,42 @@ describe('US-006 — Transações recorrentes mensais (recurring)', () => {
     expect(parseRecurringRules(null)).toEqual([]);
     expect(parseRecurringRules('oops')).toEqual([]);
     expect(parseRecurringRules(JSON.stringify([baseRule]))).toHaveLength(1);
+  });
+
+  it('divide compra parcelada em parcelas mensais consecutivas somando 100% do valor total', () => {
+    let seq = 1;
+    const installments = buildInstallmentTransactions({
+      baseTransaction: {
+        id: 'tx-base',
+        type: 'expense',
+        amount: Money.fromCents(30000),
+        description: 'Tênis corrida',
+        categoryId: 'cat-shopping',
+        accountId: 'acc-1',
+        date: '2026-11-10',
+        createdAt: '2026-11-10T10:00:00.000Z',
+        updatedAt: '2026-11-10T10:00:00.000Z',
+      },
+      installments: 3,
+      idGenerator: () => `tx-inst-${++seq}`,
+      now: '2026-11-10T10:00:00.000Z',
+    });
+
+    expect(installments).toHaveLength(3);
+    expect(installments[0]).toMatchObject({
+      id: 'tx-base',
+      description: 'Tênis corrida (1/3)',
+      date: '2026-11-10',
+    });
+    expect(installments[0].amount.cents).toBe(10000);
+    expect(installments[1]).toMatchObject({
+      description: 'Tênis corrida (2/3)',
+      date: '2026-12-10',
+    });
+    expect(installments[2]).toMatchObject({
+      description: 'Tênis corrida (3/3)',
+      date: '2027-01-10',
+    });
   });
 });
 

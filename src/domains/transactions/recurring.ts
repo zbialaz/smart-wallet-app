@@ -1,4 +1,4 @@
-import type { ISODate, YearMonth } from '@/shared/date';
+import { addMonths, toYearMonth, type ISODate, type YearMonth } from '@/shared/date';
 import { Money } from '@/shared/money';
 import type { TransactionType } from '@/shared/transaction-type';
 
@@ -131,4 +131,52 @@ export function parseRecurringRules(raw: string | null | undefined): RecurringRu
     return [];
   }
 }
+
+export const INSTALLMENT_OPTIONS = [2, 3, 4, 6, 10, 12] as const;
+
+/**
+ * Gera a lista de transações mensais de uma compra parcelada (ex.: R$ 300,00 em 3x -> 3x de R$ 100,00
+ * nos meses consecutivos, com sufixo `(1/3)`, `(2/3)`, `(3/3)`).
+ */
+export function buildInstallmentTransactions(params: {
+  baseTransaction: Transaction;
+  installments: number;
+  idGenerator: () => string;
+  now: string;
+}): Transaction[] {
+  const { baseTransaction, installments, idGenerator, now } = params;
+  const count = Math.trunc(installments);
+  if (!Number.isFinite(count) || count <= 1) {
+    return [baseTransaction];
+  }
+
+  const totalCents = baseTransaction.amount.cents;
+  const basePartCents = Math.max(1, Math.floor(totalCents / count));
+  const remainderCents = Math.max(0, totalCents - basePartCents * count);
+
+  const startMonth = toYearMonth(baseTransaction.date);
+  const day = dayFromISODate(baseTransaction.date);
+  const baseLabel = baseTransaction.description?.trim() || 'Parcela';
+
+  const list: Transaction[] = [];
+  for (let i = 0; i < count; i++) {
+    const partCents = i === 0 ? basePartCents + remainderCents : basePartCents;
+    const targetMonth = i === 0 ? startMonth : addMonths(startMonth, i);
+    const date = i === 0 ? baseTransaction.date : dueDateForMonth(targetMonth, day);
+    const description = `${baseLabel} (${i + 1}/${count})`.slice(0, 80);
+
+    list.push({
+      ...baseTransaction,
+      id: i === 0 ? baseTransaction.id : idGenerator(),
+      amount: Money.fromCents(partCents),
+      description,
+      date,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  return list;
+}
+
 

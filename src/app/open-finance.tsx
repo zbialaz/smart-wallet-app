@@ -15,6 +15,7 @@ import {
   classifyPluggyTransactions,
   type ClassifiedBankTransaction,
 } from '@/domains/open-finance/pluggy-sync';
+import { parseBankStatementText } from '@/domains/open-finance/statement-parser';
 import { formatRelativeDate, today } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
 import { useCategoryMap } from '@/store/selectors';
@@ -26,6 +27,7 @@ import {
   Field,
   IconBadge,
   Screen,
+  TextField,
 } from '@/ui/components';
 import { Text } from '@/ui/text';
 import { radius, spacing, useTheme } from '@/ui/theme';
@@ -50,6 +52,8 @@ export default function OpenFinanceScreen() {
   );
 
   const [importing, setImporting] = useState(false);
+  const [showPasteStatement, setShowPasteStatement] = useState(false);
+  const [statementText, setStatementText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [previewItems, setPreviewItems] = useState<ClassifiedBankTransaction[]>([]);
@@ -86,6 +90,18 @@ export default function OpenFinanceScreen() {
     setSuccessMsg(null);
     const sample = buildSampleOpenFinanceTransactions(today());
     loadPreview(sample);
+  }
+
+  function handleParseStatementText() {
+    setError(null);
+    setSuccessMsg(null);
+    const parsed = parseBankStatementText(statementText, today());
+    if (parsed.length === 0) {
+      setError('Nenhum lançamento reconhecido no texto colado. Use o formato CSV ou OFX do banco.');
+      return;
+    }
+    loadPreview(parsed);
+    setShowPasteStatement(false);
   }
 
   function toggleSelection(externalId: string) {
@@ -155,7 +171,7 @@ export default function OpenFinanceScreen() {
             </View>
           </Field>
 
-          {/* 2. Sincronização Simulada com 1 Toque */}
+          {/* 2. Sincronização Simulada com 1 Toque + Importar CSV/OFX do Banco */}
           <Card style={{ gap: spacing.sm }}>
             <Button
               testID="simulate-open-finance-btn"
@@ -163,6 +179,32 @@ export default function OpenFinanceScreen() {
               icon="flash"
               onPress={handleSimulateOpenFinance}
             />
+            <Button
+              testID="toggle-paste-statement-btn"
+              label="Importar extrato CSV / OFX (Nubank, Itaú, Inter)"
+              variant="secondary"
+              icon="document-text-outline"
+              onPress={() => setShowPasteStatement((v) => !v)}
+            />
+            {showPasteStatement && (
+              <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
+                <TextField
+                  testID="statement-paste-input"
+                  value={statementText}
+                  onChangeText={setStatementText}
+                  placeholder="Cole aqui as linhas do CSV ou OFX exportado do app do seu banco..."
+                  multiline
+                  style={{ minHeight: 96, textAlignVertical: 'top', paddingVertical: spacing.sm }}
+                />
+                <Button
+                  testID="parse-statement-btn"
+                  label="Classificar extrato colado"
+                  icon="sparkles"
+                  disabled={!statementText.trim()}
+                  onPress={handleParseStatementText}
+                />
+              </View>
+            )}
           </Card>
 
           {error && (

@@ -51,6 +51,7 @@ import {
   type TransactionField,
 } from '@/domains/transactions/transaction';
 import {
+  buildInstallmentTransactions,
   materializeDueRecurringTransactions,
   normalizeDayOfMonth,
   parseRecurringRules,
@@ -198,6 +199,7 @@ interface WalletState {
 
   /** Contas bancárias e transações */
   createAccount(draft: AccountDraft): Promise<Result<Account, FieldErrors<AccountField>>>;
+  updateAccount(accountId: string, draft: AccountDraft): Promise<Result<Account, FieldErrors<AccountField>>>;
   deleteBankAccount(accountId: string): Promise<void>;
   /** US-009: transfere saldo entre duas contas do usuário. */
   transferBetweenAccounts(
@@ -214,7 +216,7 @@ interface WalletState {
   saveTransaction(
     draft: TransactionDraft,
     id?: string,
-    options?: { recurringDayOfMonth?: number },
+    options?: { recurringDayOfMonth?: number; installments?: number },
   ): Promise<Result<Transaction, FieldErrors<TransactionField>>>;
   /** US-006.3: pausa ou reativa uma transação recorrente. */
   setRecurringRuleActive(ruleId: string, active: boolean): Promise<void>;
@@ -801,6 +803,28 @@ export const useWallet = create<WalletState>()((set, get) => {
       return ok(account);
     },
 
+    async updateAccount(accountId, draft) {
+      const user = get().currentUser;
+      if (!user) {
+        return fail({ name: 'Faça login antes de editar a conta bancária' });
+      }
+
+      const existing = get().accounts.find((a) => a.id === accountId);
+      if (!existing) {
+        return fail({ name: 'Conta não encontrada' });
+      }
+
+      const existingNames = get()
+        .accounts.filter((a) => a.id !== accountId)
+        .map((a) => a.name);
+      const result = validateAccount(draft, existingNames);
+      if (!result.ok) return result;
+
+      await requireRepos().accounts.update(accountId, user.id, result.value);
+      await get().refresh();
+      return ok({ ...existing, ...result.value });
+    },
+
     async deleteBankAccount(accountId) {
       const user = get().currentUser;
       if (!user) return;
@@ -906,23 +930,47 @@ export const useWallet = create<WalletState>()((set, get) => {
       if (!result.ok) return result;
 
       const now = nowISO();
-      const transaction: Transaction = original
+      const baseTransaction: Transaction = original
         ? { ...original, ...result.value, updatedAt: now }
         : { id: generateId(), ...result.value, createdAt: now, updatedAt: now };
 
-      if (original) await repos.transactions.update(transaction);
-      else await repos.transactions.insert(transaction);
+      let transaction = baseTransaction;
+      const db = get().db;
+
+      if (original) {
+        await repos.transactions.update(transaction);
+      } else if (options?.installments && options.installments >= 2) {
+        const installmentsList = buildInstallmentTransactions({
+          baseTransaction,
+          installments: options.installments,
+          idGenerator: generateId,
+          now,
+        });
+        transaction = installmentsList[0];
+        if (db) {
+          await db.withTransactionAsync(async () => {
+            for (const item of installmentsList) {
+              await repos.transactions.insert(item);
+            }
+          });
+        } else {
+          for (const item of installmentsList) {
+            await repos.transactions.insert(item);
+          }
+        }
+      } else {
+        await repos.transactions.insert(transaction);
+      }
 
       // US-016.3: aprende a associação descrição → categoria escolhida pelo usuário
       const user = get().currentUser;
-      const db = get().db;
-      if (user && db && transaction.description) {
+      if (user && db && baseTransaction.description) {
         const currentRules = get().learnedCategoryRules;
         const nextRules = learnCategoryRule(
           currentRules,
-          transaction.description,
-          transaction.type,
-          transaction.categoryId,
+          baseTransaction.description,
+          baseTransaction.type,
+          baseTransaction.categoryId,
         );
         if (nextRules !== currentRules) {
           await db.runAsync(

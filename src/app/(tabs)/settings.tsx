@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { USER_NAME_MAX_LENGTH } from '@/domains/auth/user';
+import { exportTransactionsToCsv } from '@/domains/open-finance/statement-parser';
 import { LANGUAGE_OPTIONS, useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 import { useConsolidatedBalance } from '@/store/selectors';
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
   const currentUser = useWallet((s) => s.currentUser);
   const accounts = useWallet((s) => s.accounts);
   const categories = useWallet((s) => s.categories);
+  const transactions = useWallet((s) => s.transactions);
   const setThemeMode = useWallet((s) => s.setThemeMode);
   const setLanguage = useWallet((s) => s.setLanguage);
   const toggleBalanceHidden = useWallet((s) => s.toggleBalanceHidden);
@@ -137,6 +139,18 @@ export default function SettingsScreen() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
+
+  async function handleExportCsv() {
+    const csv = exportTransactionsToCsv({
+      transactions,
+      categories,
+      accounts,
+    });
+    await Share.share({
+      title: 'Extrato Smart Wallet (CSV)',
+      message: csv,
+    });
+  }
 
   return (
     <Screen>
@@ -498,8 +512,8 @@ export default function SettingsScreen() {
           </Card>
         </FadeIn>
 
-        {/* 6. CATEGORIAS */}
-        <FadeIn delay={170}>
+        {/* 6. CATEGORIAS E EXPORTAÇÃO CSV */}
+        <FadeIn delay={170} style={{ gap: spacing.sm }}>
           <Pressable
             testID="manage-categories"
             onPress={() => router.push('/categories')}
@@ -523,6 +537,29 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Pressable>
+
+          <Pressable
+            testID="export-csv-btn"
+            onPress={handleExportCsv}
+            style={({ pressed }) => [
+              styles.shortcutRow,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <Ionicons name="download-outline" size={20} color={colors.primary} />
+              <View>
+                <Text variant="bodyStrong">Exportar extrato do mês (CSV)</Text>
+                <Text variant="caption" color="textMuted">
+                  {`${transactions.length} lançamentos prontos para Excel / Planilhas`}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="share-outline" size={18} color={colors.textMuted} />
           </Pressable>
         </FadeIn>
 

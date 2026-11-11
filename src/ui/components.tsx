@@ -194,12 +194,14 @@ export function Chip({
   onPress,
   color,
   icon,
+  testID,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   color?: string;
   icon?: IconName;
+  testID?: string;
 }) {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -208,6 +210,7 @@ export function Chip({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,

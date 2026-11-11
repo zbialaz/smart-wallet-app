@@ -20,7 +20,7 @@ import {
   analyzeReceiptWithGemini,
   type ReceiptScanResult,
 } from '@/domains/transactions/receipt-scanner';
-import { dayFromISODate } from '@/domains/transactions/recurring';
+import { dayFromISODate, INSTALLMENT_OPTIONS } from '@/domains/transactions/recurring';
 import { DESCRIPTION_MAX_LENGTH, type TransactionField } from '@/domains/transactions/transaction';
 import { addDays, formatDateBR, parseDateBR, today, type ISODate } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
@@ -83,6 +83,8 @@ export default function TransactionFormScreen() {
   const [dateText, setDateText] = useState(formatDateBR(today()));
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [installments, setInstallments] = useState<number>(1);
+  const [showInstallments, setShowInstallments] = useState(false);
   const [showQuickPhrase, setShowQuickPhrase] = useState(false);
   const [quickPhrase, setQuickPhrase] = useState('');
   const [quickEntryApplied, setQuickEntryApplied] = useState(false);
@@ -310,6 +312,13 @@ export default function TransactionFormScreen() {
     }
 
     const recurringDay = dayFromISODate(parsedDate ?? today());
+    const saveOptions = !isEditing
+      ? isRecurring
+        ? { recurringDayOfMonth: recurringDay }
+        : installments > 1 && type === 'expense'
+          ? { installments }
+          : undefined
+      : undefined;
     const result = await saveTransaction(
       {
         type,
@@ -321,7 +330,7 @@ export default function TransactionFormScreen() {
         date: (parsedDate ?? '') as ISODate,
       },
       id,
-      !isEditing && isRecurring ? { recurringDayOfMonth: recurringDay } : undefined,
+      saveOptions,
     );
     setSaving(false);
     if (!result.ok) {
@@ -736,7 +745,30 @@ export default function TransactionFormScreen() {
                   icon="repeat"
                   color={colors.primary}
                   selected={isRecurring}
-                  onPress={() => setIsRecurring((v) => !v)}
+                  onPress={() => {
+                    setIsRecurring((v) => !v);
+                    setShowInstallments(false);
+                    setInstallments(1);
+                  }}
+                />
+              )}
+              {!isEditing && !isTransfer && type === 'expense' && (
+                <Chip
+                  testID="installments-toggle"
+                  label={installments > 1 ? `Parcelado (${installments}x)` : 'Parcelado'}
+                  icon="layers-outline"
+                  color={colors.primary}
+                  selected={showInstallments || installments > 1}
+                  onPress={() => {
+                    const nextShow = !showInstallments;
+                    setShowInstallments(nextShow);
+                    setIsRecurring(false);
+                    if (nextShow && installments <= 1) {
+                      setInstallments(2);
+                    } else if (!nextShow) {
+                      setInstallments(1);
+                    }
+                  }}
                 />
               )}
             </View>
@@ -744,6 +776,27 @@ export default function TransactionFormScreen() {
               <Text variant="caption" color="primary" testID="recurring-hint">
                 {t.transactions.recurringHint(dayFromISODate(parsedDate ?? today()))}
               </Text>
+            )}
+            {!isEditing && !isTransfer && type === 'expense' && (showInstallments || installments > 1) && (
+              <View style={{ gap: spacing.xs, paddingTop: 4 }}>
+                <View style={{ flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' }}>
+                  {INSTALLMENT_OPTIONS.map((count) => (
+                    <Chip
+                      key={count}
+                      testID={`installment-option-${count}`}
+                      label={`${count}x`}
+                      color={colors.primary}
+                      selected={installments === count}
+                      onPress={() => setInstallments(count)}
+                    />
+                  ))}
+                </View>
+                {amount.isPositive() && installments > 1 && (
+                  <Text variant="caption" color="primary" testID="installment-summary">
+                    {`${installments}x de ${Money.fromCents(Math.floor(amount.cents / installments)).format()} nos próximos meses`}
+                  </Text>
+                )}
+              </View>
             )}
             {(showCustomDate ||
               !parsedDate ||

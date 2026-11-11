@@ -14,21 +14,35 @@ import { useWallet } from '@/store/wallet-store';
 import { AmountInput, Button, Chip, Field, TextField } from '@/ui/components';
 import { spacing, useTheme } from '@/ui/theme';
 
-/** Formulário de conta, usado no onboarding (US-023) e em "Adicionar conta" (US-007). */
-export function AccountForm({ submitLabel, onDone }: { submitLabel: string; onDone: () => void }) {
+/** Formulário de conta, usado no onboarding (US-023), em "Adicionar conta" (US-007) e na edição de conta. */
+export function AccountForm({
+  accountId,
+  submitLabel,
+  onDone,
+}: {
+  accountId?: string;
+  submitLabel: string;
+  onDone: () => void;
+}) {
   const { colors } = useTheme();
   const { t } = useI18n();
+  const accounts = useWallet((s) => s.accounts);
   const createAccount = useWallet((s) => s.createAccount);
+  const updateAccount = useWallet((s) => s.updateAccount);
 
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(DEFAULT_ACCOUNT_COLOR);
-  const [initialBalance, setInitialBalance] = useState(Money.zero());
+  const existing = accountId ? accounts.find((a) => a.id === accountId) : undefined;
+
+  const [name, setName] = useState(existing?.name ?? '');
+  const [color, setColor] = useState(existing?.color ?? DEFAULT_ACCOUNT_COLOR);
+  const [initialBalance, setInitialBalance] = useState(existing?.initialBalance ?? Money.zero());
   const [errors, setErrors] = useState<FieldErrors<AccountField>>({});
   const [saving, setSaving] = useState(false);
 
   async function onSubmit() {
     setSaving(true);
-    const result = await createAccount({ name, color, initialBalance });
+    const result = existing
+      ? await updateAccount(existing.id, { name, color, initialBalance })
+      : await createAccount({ name, color, initialBalance });
     setSaving(false);
     if (!result.ok) {
       setErrors(result.error);

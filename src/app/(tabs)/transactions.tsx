@@ -10,7 +10,7 @@ import {
   hasActiveFilters,
   type TransactionFilters,
 } from '@/domains/transactions/filters';
-import type { Transaction } from '@/domains/transactions/transaction';
+import { signedAmount, type Transaction } from '@/domains/transactions/transaction';
 import { formatRelativeDate } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
@@ -61,6 +61,10 @@ export default function TransactionsScreen() {
   const filtersActive = hasActiveFilters(filters);
 
   const filtered = useMemo(() => filterTransactions(transactions, filters), [transactions, filters]);
+  const filteredTotalCents = useMemo(
+    () => filtered.reduce((acc, tx) => acc + signedAmount(tx).cents, 0),
+    [filtered],
+  );
 
   // Só oferece como filtro as categorias que realmente aparecem no mês
   const usedCategories = useMemo(() => {
@@ -144,8 +148,11 @@ export default function TransactionsScreen() {
 
         {filtersActive && (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="caption" color="textMuted">
+            <Text variant="caption" color="textMuted" testID="filtered-results-summary">
               {t.transactions.resultsCount(filtered.length)}
+              {filtered.length > 0
+                ? ` • ${filteredTotalCents >= 0 ? '+' : '-'}${Money.fromCents(Math.abs(filteredTotalCents)).format()}`
+                : ''}
             </Text>
             <Pressable testID="clear-filters" onPress={() => setFilters(EMPTY_FILTERS)} hitSlop={10}>
               <Text variant="caption" color="primary" style={{ fontWeight: '700' }}>
