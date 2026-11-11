@@ -99,3 +99,4 @@ describe('Importação de Extrato CSV/OFX e Exportação CSV (statement-parser)'
     expect(csv).toContain('2026-11-05,Gasto,Uber Centro,Transporte,Nubank,-32.90');
   });
 });
+
