@@ -1,4 +1,4 @@
-simport type { Account } from '@/domains/accounts/account';
+import type { Account } from '@/domains/accounts/account';
 import type { Category } from '@/domains/categories/category';
 import type { Transaction } from '@/domains/transactions/transaction';
 import { isValidISODate, parseDateBR, type ISODate } from '@/shared/date';

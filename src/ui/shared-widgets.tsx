@@ -500,11 +500,14 @@ const createStyles = (colors: ThemeColors) =>
     monthLabelArea: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: 142,
     },
     monthText: {
       fontSize: 14,
       color: colors.text,
       letterSpacing: -0.2,
+      textAlign: 'center',
     },
     arrowButton: {
       width: 32,
