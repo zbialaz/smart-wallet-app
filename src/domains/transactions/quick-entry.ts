@@ -110,9 +110,28 @@ export function extractMoneyFromPhrase(raw: string): {
   const maskedInstallments = maskedDates.replace(/\b\d{1,2}\s*x\b/gi, ' ');
   const maskedDays = maskedInstallments.replace(/\bdia\s+\d{1,2}\b/gi, ' ');
 
-  // Procura padrões como "R$ 1.234,56", "45,90", "45.90", "1.200", "150"
-  const regex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})+,\d{2}|\d+[.,]\d{1,2}|\d{1,6})\b/i;
-  const match = regex.exec(maskedDays);
+  // Prioridade 1: valor explicitamente precedido por R$ (ex.: "R$ 32,50" ou "R$ 150")
+  const currencyMatch = /R\$\s*(\d{1,3}(?:\.\d{3})+,\d{2}|\d+[.,]\d{1,2}|\d{1,7})\b/i.exec(
+    maskedDays,
+  );
+  // Prioridade 2: valor com casas decimais ou separador de milhar (ex.: "24,90", "4.500,00")
+  // Evita confundir números no nome do estabelecimento ("99Pop 24,90", "iPhone 15 4.999,90")
+  const decimalMatch =
+    !currencyMatch
+      ? /\b(\d{1,3}(?:\.\d{3})+,\d{2}|\d{1,3}(?:\.\d{3})+|\d+[.,]\d{1,2})\b/.exec(maskedDays)
+      : null;
+
+  // Prioridade 3: números inteiros soltos (pega o último número da frase para não capturar "PlayStation 5" em "PlayStation 5 3500")
+  let intMatch: RegExpExecArray | null = null;
+  if (!currencyMatch && !decimalMatch) {
+    const intRegex = /\b(\d{1,7})\b/g;
+    let m: RegExpExecArray | null;
+    while ((m = intRegex.exec(maskedDays)) !== null) {
+      intMatch = m;
+    }
+  }
+
+  const match = currencyMatch ?? decimalMatch ?? intMatch;
   if (!match) return { amount: null, matchedToken: null };
 
   const fullMatch = match[0];
@@ -125,6 +144,9 @@ export function extractMoneyFromPhrase(raw: string): {
   } else if (numberPart.includes(',')) {
     // 45,9 -> 45.90 | 45,90 -> 45.90
     normalizedNumber = numberPart.replace(',', '.');
+  } else if (/^\d{1,3}(?:\.\d{3})+$/.test(numberPart)) {
+    // 4.500 -> 4500
+    normalizedNumber = numberPart.replace(/\./g, '');
   } else {
     normalizedNumber = numberPart;
   }
@@ -135,6 +157,9 @@ export function extractMoneyFromPhrase(raw: string): {
   }
 
   const cents = Math.round(parsedFloat * 100);
+  if (!Number.isSafeInteger(cents)) {
+    return { amount: null, matchedToken: null };
+  }
   return {
     amount: Money.fromCents(cents),
     matchedToken: fullMatch,

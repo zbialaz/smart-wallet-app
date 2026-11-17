@@ -96,10 +96,10 @@ export function validateTransaction(
     errors.categoryId = 'Esta categoria está arquivada';
   }
 
-  // RN-06: data válida e não futura (comparação de strings funciona em 'YYYY-MM-DD')
+  // RN-06: data válida e não futura (exceto ao editar parcela futura mantendo a própria data original)
   if (!isValidISODate(draft.date)) {
     errors.date = 'Data inválida';
-  } else if (draft.date > ctx.today) {
+  } else if (draft.date > ctx.today && draft.date !== ctx.original?.date) {
     errors.date = 'A data não pode ser no futuro';
   }
 

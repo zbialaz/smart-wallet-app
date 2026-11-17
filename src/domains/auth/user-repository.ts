@@ -78,9 +78,12 @@ export function createUserRepository(db: SQLiteDatabase) {
         await db.runAsync('DELETE FROM categories WHERE user_id = ?', userId);
         await db.runAsync('DELETE FROM users WHERE id = ?', userId);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `monthly_budget:${userId}`);
+        await db.runAsync('DELETE FROM settings WHERE key = ?', `category_budgets:${userId}`);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `learned_category_rules:${userId}`);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `recurring_rules:${userId}`);
         await db.runAsync('DELETE FROM settings WHERE key = ?', `gemini_api_key:${userId}`);
+        await db.runAsync('DELETE FROM settings WHERE key = ?', `open_finance_config:${userId}`);
+        await db.runAsync('DELETE FROM settings WHERE key = ?', `imported_open_finance_ids:${userId}`);
         await db.runAsync(`DELETE FROM settings WHERE key = 'current_user_id'`);
       });
     },

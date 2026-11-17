@@ -799,7 +799,7 @@ export default function TransactionFormScreen() {
                 </View>
                 {amount.isPositive() && installments > 1 && (
                   <Text variant="caption" color="primary" testID="installment-summary">
-                    {`${installments}x de ${Money.fromCents(Math.floor(amount.cents / installments)).format()} nos próximos meses`}
+                    {`${Math.min(installments, amount.cents)}x de ${Money.fromCents(Math.max(1, Math.floor(amount.cents / Math.min(installments, amount.cents)))).format()} nos próximos meses`}
                   </Text>
                 )}
               </View>

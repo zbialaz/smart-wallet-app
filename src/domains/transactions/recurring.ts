@@ -60,18 +60,30 @@ export function materializeDueRecurringTransactions(params: {
   today: ISODate;
   idGenerator: () => string;
   now: string;
+  validAccountIds?: ReadonlySet<string>;
+  validCategoryIds?: ReadonlySet<string>;
 }): {
   transactionsToInsert: Transaction[];
   updatedRules: RecurringRule[];
   changed: boolean;
 } {
-  const { rules, targetMonth, today, idGenerator, now } = params;
+  const {
+    rules,
+    targetMonth,
+    today,
+    idGenerator,
+    now,
+    validAccountIds,
+    validCategoryIds,
+  } = params;
   const transactionsToInsert: Transaction[] = [];
   let changed = false;
 
   const updatedRules = rules.map((rule) => {
     if (!rule.active) return rule;
     if (rule.generatedMonths.includes(targetMonth)) return rule;
+    if (validAccountIds && !validAccountIds.has(rule.accountId)) return rule;
+    if (validCategoryIds && !validCategoryIds.has(rule.categoryId)) return rule;
 
     const dueDate = dueDateForMonth(targetMonth, rule.dayOfMonth);
     if (dueDate > today) return rule;
@@ -151,19 +163,26 @@ export function buildInstallmentTransactions(params: {
   }
 
   const totalCents = baseTransaction.amount.cents;
-  const basePartCents = Math.max(1, Math.floor(totalCents / count));
-  const remainderCents = Math.max(0, totalCents - basePartCents * count);
+  const effectiveCount = Math.min(count, Math.max(1, totalCents));
+  if (effectiveCount <= 1) {
+    return [baseTransaction];
+  }
+
+  const basePartCents = Math.floor(totalCents / effectiveCount);
+  const remainderCents = totalCents - basePartCents * effectiveCount;
 
   const startMonth = toYearMonth(baseTransaction.date);
   const day = dayFromISODate(baseTransaction.date);
   const baseLabel = baseTransaction.description?.trim() || 'Parcela';
 
   const list: Transaction[] = [];
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < effectiveCount; i++) {
     const partCents = i === 0 ? basePartCents + remainderCents : basePartCents;
     const targetMonth = i === 0 ? startMonth : addMonths(startMonth, i);
     const date = i === 0 ? baseTransaction.date : dueDateForMonth(targetMonth, day);
-    const description = `${baseLabel} (${i + 1}/${count})`.slice(0, 80);
+    const suffix = ` (${i + 1}/${effectiveCount})`;
+    const trimmedBase = baseLabel.slice(0, Math.max(1, 80 - suffix.length));
+    const description = `${trimmedBase}${suffix}`;
 
     list.push({
       ...baseTransaction,

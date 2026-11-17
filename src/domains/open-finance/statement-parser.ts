@@ -139,6 +139,15 @@ export function parseBankStatementText(
   const dataLines = hasHeader ? lines.slice(1) : lines;
   const results: PluggyRawTransaction[] = [];
 
+  const amountColIndex = hasHeader
+    ? firstCols.findIndex((c) => ['valor', 'amount', 'value', 'quantia'].includes(c))
+    : -1;
+  const descColIndex = hasHeader
+    ? firstCols.findIndex((c) =>
+        ['descrição', 'descricao', 'title', 'historico', 'histórico', 'lançamento', 'lancamento', 'memo'].includes(c),
+      )
+    : -1;
+
   dataLines.forEach((line, idx) => {
     const cols = splitCsvLine(line, delimiter);
     if (cols.length < 2) return;
@@ -148,16 +157,20 @@ export function parseBankStatementText(
     let externalId: string | null = null;
     const textParts: string[] = [];
 
-    for (const col of cols) {
+    if (amountColIndex >= 0 && amountColIndex < cols.length) {
+      amount = parseStatementAmount(cols[amountColIndex]);
+    }
+
+    cols.forEach((col, colIdx) => {
       const clean = col.trim();
-      if (!clean) continue;
+      if (!clean || colIdx === amountColIndex) return;
 
       if (
         !dateIso &&
         (/^\d{4}-\d{2}-\d{2}/.test(clean) || /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(clean))
       ) {
         dateIso = normalizeStatementDate(clean, fallbackDate);
-        continue;
+        return;
       }
 
       if (
@@ -165,23 +178,46 @@ export function parseBankStatementText(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)
       ) {
         externalId = clean;
-        continue;
+        return;
       }
 
-      const parsedNum =
-        /^-?(?:R\$\s*)?\d+(?:[.,]\d{3})*(?:[.,]\d{1,2})?$/.test(clean)
-          ? parseStatementAmount(clean)
-          : null;
-      if (amount === null && parsedNum !== null) {
-        amount = parsedNum;
-        continue;
+      if (amount === null) {
+        const isDecimalMoney = /^-?(?:R\$\s*)?\d+(?:\.\d{3})*[.,]\d{1,2}$/.test(clean);
+        if (isDecimalMoney) {
+          const parsedDec = parseStatementAmount(clean);
+          if (parsedDec !== null) {
+            amount = parsedDec;
+            return;
+          }
+        }
+      }
+
+      // Ignora colunas numéricas puras de "Documento" / "Protocolo" quando não são a coluna de descrição
+      if (/^\d{4,}$/.test(clean) && colIdx !== descColIndex) {
+        return;
       }
 
       textParts.push(clean);
+    });
+
+    // Fallback se o CSV sem cabeçalho tiver valor inteiro simples (ex.: "2026-11-05,Almoço,-45")
+    if (amount === null) {
+      for (let i = cols.length - 1; i >= 0; i--) {
+        const clean = cols[i].trim();
+        if (/^-?(?:R\$\s*)?\d+$/.test(clean)) {
+          const parsedInt = parseStatementAmount(clean);
+          if (parsedInt !== null) {
+            amount = parsedInt;
+            break;
+          }
+        }
+      }
     }
 
     if (amount === null) return;
-    const description = textParts[textParts.length - 1] || 'Lançamento importado';
+    const explicitDesc =
+      descColIndex >= 0 && cols[descColIndex]?.trim() ? cols[descColIndex].trim() : null;
+    const description = explicitDesc || textParts[textParts.length - 1] || 'Lançamento importado';
     const resolvedDate = dateIso ?? fallbackDate;
 
     const finalAmount = isNubankCardInvoice ? -amount : amount;

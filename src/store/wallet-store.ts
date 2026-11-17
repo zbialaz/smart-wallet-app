@@ -339,11 +339,18 @@ export const useWallet = create<WalletState>()((set, get) => {
 
       const month = get().selectedMonth;
       const db = get().db;
-      const recurringRow = await db?.getFirstAsync<{ value: string }>(
-        'SELECT value FROM settings WHERE key = ?',
-        recurringRulesKey(user.id),
+      const [initialAccounts, recurringRow] = await Promise.all([
+        repos.accounts.listActiveWithTotals(user.id),
+        db?.getFirstAsync<{ value: string }>(
+          'SELECT value FROM settings WHERE key = ?',
+          recurringRulesKey(user.id),
+        ),
+      ]);
+      const validAccountIds = new Set(initialAccounts.map((a) => a.account.id));
+      const validCategoryIds = new Set(categories.map((c) => c.id));
+      let recurringRules = parseRecurringRules(recurringRow?.value).filter(
+        (r) => validAccountIds.has(r.accountId) && validCategoryIds.has(r.categoryId),
       );
-      let recurringRules = parseRecurringRules(recurringRow?.value);
 
       // US-006.2: materializa automaticamente transações recorrentes vencidas no mês atual/selecionado
       if (recurringRules.length > 0 && db) {
@@ -353,6 +360,8 @@ export const useWallet = create<WalletState>()((set, get) => {
           today: today(),
           idGenerator: generateId,
           now: nowISO(),
+          validAccountIds,
+          validCategoryIds,
         });
         if (materialized.changed) {
           recurringRules = materialized.updatedRules;
@@ -761,7 +770,12 @@ export const useWallet = create<WalletState>()((set, get) => {
         transactions: [],
         monthlyEvolution: [],
         monthlyBudget: null,
+        categoryBudgets: {},
         learnedCategoryRules: {},
+        categoryMonthlyStats: [],
+        recurringRules: [],
+        openFinanceConfig: { clientId: '', clientSecret: '', itemId: '' },
+        importedOpenFinanceIds: [],
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
@@ -777,7 +791,12 @@ export const useWallet = create<WalletState>()((set, get) => {
         transactions: [],
         monthlyEvolution: [],
         monthlyBudget: null,
+        categoryBudgets: {},
         learnedCategoryRules: {},
+        categoryMonthlyStats: [],
+        recurringRules: [],
+        openFinanceConfig: { clientId: '', clientSecret: '', itemId: '' },
+        importedOpenFinanceIds: [],
         categories: get().categories.filter((c) => c.isDefault),
       });
     },
@@ -827,8 +846,17 @@ export const useWallet = create<WalletState>()((set, get) => {
 
     async deleteBankAccount(accountId) {
       const user = get().currentUser;
+      const db = get().db;
       if (!user) return;
       await requireRepos().accounts.remove(accountId, user.id);
+      const remainingRules = get().recurringRules.filter((r) => r.accountId !== accountId);
+      if (db && remainingRules.length !== get().recurringRules.length) {
+        await db.runAsync(
+          'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+          recurringRulesKey(user.id),
+          JSON.stringify(remainingRules),
+        );
+      }
       await get().refresh();
     },
 
