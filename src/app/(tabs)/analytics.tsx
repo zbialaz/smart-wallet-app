@@ -40,7 +40,6 @@ import {
   EmptyState,
   FadeIn,
   IconBadge,
-  KobreLogo,
   Screen,
 } from '@/ui/components';
 import { MonthlyEvolutionChart } from '@/ui/evolution-chart';
@@ -193,14 +192,11 @@ export default function AnalyticsScreen() {
         contentContainerStyle={styles.scrollContent}>
         {/* Cabeçalho Dinâmico + Alternador "Neste mês" vs "Ao longo dos meses" */}
         <FadeIn style={{ gap: spacing.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text variant="title">
-              {viewMode === 'month'
-                ? t.dashboard.analyticsTitle
-                : t.dashboard.analyticsMultiMonthTitle}
-            </Text>
-            <KobreLogo size={30} />
-          </View>
+          <Text variant="title">
+            {viewMode === 'month'
+              ? t.dashboard.analyticsTitle
+              : t.dashboard.analyticsMultiMonthTitle}
+          </Text>
 
           <View
             style={{

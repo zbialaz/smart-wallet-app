@@ -19,7 +19,6 @@ import {
   Field,
   FlagIcon,
   IconBadge,
-  KobreLogo,
   Screen,
   TextField,
 } from '@/ui/components';
@@ -158,9 +157,8 @@ export default function SettingsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        <FadeIn style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <FadeIn>
           <Text variant="title">{t.settings.title}</Text>
-          <KobreLogo size={30} />
         </FadeIn>
 
         {/* 1. PERFIL E CONTA DO USUÁRIO */}

@@ -13,7 +13,6 @@ import type { AccountWithBalance } from '@/domains/accounts/account';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
-import { KobreLogo } from '@/ui/components';
 import { Text } from '@/ui/text';
 import {
   getContrastForeground,
@@ -185,14 +184,6 @@ export function WalletPocket({
             <View style={styles.frontLeatherOverlay} />
             <View style={styles.frontPocketContent}>
               <View style={styles.stitchLine} />
-
-              {/* Cabeçalho limpo com gravação da marca Kobre */}
-              <View style={styles.walletHeader}>
-                <View style={styles.brandEmboss}>
-                  <KobreLogo variant="mark" size={18} color="#E28753" />
-                  <Text style={styles.brandEmbossText}>KOBRE</Text>
-                </View>
-              </View>
 
               {/* Saldo Consolidado + Botão Circular Inline Limpo */}
               <View style={styles.balanceArea}>

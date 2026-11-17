@@ -15,7 +15,7 @@ import { formatRelativeDate } from '@/shared/date';
 import { useI18n } from '@/shared/i18n';
 import { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
-import { Button, Card, Chip, EmptyState, Fab, KobreLogo, Screen, TextField } from '@/ui/components';
+import { Button, Card, Chip, EmptyState, Fab, Screen, TextField } from '@/ui/components';
 import { MonthSwitcher, TransactionRow } from '@/ui/shared-widgets';
 import { Text } from '@/ui/text';
 import { radius, spacing, useTheme } from '@/ui/theme';
@@ -95,10 +95,7 @@ export default function TransactionsScreen() {
   return (
     <Screen>
       <View style={{ padding: spacing.xl, paddingBottom: spacing.md, gap: spacing.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text variant="title">{t.transactions.title}</Text>
-          <KobreLogo size={30} />
-        </View>
+        <Text variant="title">{t.transactions.title}</Text>
         <MonthSwitcher month={month} onChange={setMonth} />
 
         <View style={{ justifyContent: 'center' }}>
