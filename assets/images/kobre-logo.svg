@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="1200" height="400">
+  <rect width="600" height="200" rx="36" fill="#140B06" />
+  <g transform="translate(16, 12) scale(0.6875)">
+    <path
+      d="M 104 55.9 A 76 76 0 0 0 104 200.1 Z M 126 52.1 A 76 76 0 0 1 176.5 69.5 L 126 112 Z M 143 128 L 191.5 86.5 A 76 76 0 0 1 191.5 169.5 Z M 126 144 L 176.5 186.5 A 76 76 0 0 1 126 203.9 Z"
+      fill="#C46E40"
+    />
+  </g>
+  <text
+    x="202"
+    y="128"
+    fill="#F7F4EE"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif"
+    font-size="92"
+    font-weight="700"
+    letter-spacing="-3"
+  >Kobre</text>
+</svg>

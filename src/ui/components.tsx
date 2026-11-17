@@ -233,6 +233,48 @@ export function Chip({
   );
 }
 
+/** Símbolo vetorial oficial da marca Kobre ("A Moeda Cortada" — Opção 1). */
+const KOBRE_SPLIT_COIN_PATH =
+  'M 104 55.9 A 76 76 0 0 0 104 200.1 Z M 126 52.1 A 76 76 0 0 1 176.5 69.5 L 126 112 Z M 143 128 L 191.5 86.5 A 76 76 0 0 1 191.5 169.5 Z M 126 144 L 176.5 186.5 A 76 76 0 0 1 126 203.9 Z';
+
+export function KobreLogo({
+  size = 56,
+  variant = 'app-icon',
+  color = '#C46E40',
+  backgroundColor = '#140B06',
+}: {
+  size?: number;
+  variant?: 'app-icon' | 'mark';
+  color?: string;
+  backgroundColor?: string;
+}) {
+  if (variant === 'mark') {
+    return (
+      <Svg width={size} height={size} viewBox="48 48 160 160">
+        <Path d={KOBRE_SPLIT_COIN_PATH} fill={color} />
+      </Svg>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.28),
+        backgroundColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+      <Svg width={size} height={size} viewBox="0 0 256 256">
+        <Rect width="256" height="256" rx="56" fill={backgroundColor} />
+        <Path d={KOBRE_SPLIT_COIN_PATH} fill={color} />
+      </Svg>
+    </View>
+  );
+}
+
 /** Ícone vetorial de bandeira (Brasil, EUA, Espanha) em SVG puro — funciona em qualquer plataforma sem depender de fonte de emoji. */
 export function FlagIcon({
   code,

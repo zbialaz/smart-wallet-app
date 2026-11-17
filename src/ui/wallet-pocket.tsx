@@ -13,6 +13,7 @@ import type { AccountWithBalance } from '@/domains/accounts/account';
 import { useI18n } from '@/shared/i18n';
 import type { Money } from '@/shared/money';
 import { useWallet } from '@/store/wallet-store';
+import { KobreLogo } from '@/ui/components';
 import { Text } from '@/ui/text';
 import {
   getContrastForeground,
@@ -185,11 +186,11 @@ export function WalletPocket({
             <View style={styles.frontPocketContent}>
               <View style={styles.stitchLine} />
 
-              {/* Cabeçalho limpo com gravação da marca */}
+              {/* Cabeçalho limpo com gravação da marca Kobre */}
               <View style={styles.walletHeader}>
                 <View style={styles.brandEmboss}>
-                  <Ionicons name="wallet-outline" size={13} color="#E4D5C7" />
-                  <Text style={styles.brandEmbossText}>SMART WALLET</Text>
+                  <KobreLogo variant="mark" size={14} color="#E4D5C7" />
+                  <Text style={styles.brandEmbossText}>KOBRE</Text>
                 </View>
               </View>
 

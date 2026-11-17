@@ -28,7 +28,7 @@ import {
   FadeIn,
   Field,
   FlagIcon,
-  IconBadge,
+  KobreLogo,
   Screen,
   TextField,
 } from '@/ui/components';
@@ -194,10 +194,10 @@ export default function AuthScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}>
-            {/* Cabeçalho com Marca (Sempre no modo claro) + Seletor de Idioma */}
+            {/* Cabeçalho com Marca Kobre (Sempre no modo claro) + Seletor de Idioma */}
             <FadeIn style={styles.header}>
               <View style={styles.topRow}>
-                <IconBadge icon="wallet" color={colors.primary} size={56} />
+                <KobreLogo size={56} />
                 <View style={[styles.langPillGroup, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
                   {LANGUAGE_OPTIONS.map((opt) => {
                     const active = language === opt.code;
@@ -226,7 +226,7 @@ export default function AuthScreen() {
                 </View>
               </View>
               <View style={{ gap: 4 }}>
-                <Text variant="display">Smart Wallet</Text>
+                <Text variant="display">Kobre</Text>
                 <Text color="textMuted">
                   {authMode === 'login' ? t.auth.loginSubtitle : t.auth.registerSubtitle}
                 </Text>
