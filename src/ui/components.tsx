@@ -275,6 +275,24 @@ export function KobreLogo({
   );
 }
 
+/** Assinatura horizontal oficial da marca Kobre (Ícone Moeda Cortada + Wordmark). */
+export function KobreBrand({ size = 32 }: { size?: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+      <KobreLogo size={size} />
+      <Text
+        variant="heading"
+        style={{
+          fontSize: Math.round(size * 0.66),
+          fontWeight: '800',
+          letterSpacing: -0.6,
+        }}>
+        Kobre
+      </Text>
+    </View>
+  );
+}
+
 /** Ícone vetorial de bandeira (Brasil, EUA, Espanha) em SVG puro — funciona em qualquer plataforma sem depender de fonte de emoji. */
 export function FlagIcon({
   code,

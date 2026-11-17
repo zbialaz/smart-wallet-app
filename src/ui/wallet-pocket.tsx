@@ -189,7 +189,7 @@ export function WalletPocket({
               {/* Cabeçalho limpo com gravação da marca Kobre */}
               <View style={styles.walletHeader}>
                 <View style={styles.brandEmboss}>
-                  <KobreLogo variant="mark" size={14} color="#E4D5C7" />
+                  <KobreLogo variant="mark" size={18} color="#E28753" />
                   <Text style={styles.brandEmbossText}>KOBRE</Text>
                 </View>
               </View>

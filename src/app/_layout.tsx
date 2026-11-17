@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DATABASE_NAME, migrateDatabase } from '@/infrastructure/database/migrations';
 import { useWallet } from '@/store/wallet-store';
+import { KobreLogo } from '@/ui/components';
 import { Text } from '@/ui/text';
 import { useTheme } from '@/ui/theme';
 
@@ -97,6 +98,7 @@ function Bootstrap() {
 
       {status !== 'ready' && status !== 'error' && (
         <View style={[styles.overlay, { backgroundColor: colors.background }]}>
+          <KobreLogo size={68} />
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
       )}

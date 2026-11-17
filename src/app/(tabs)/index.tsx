@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useI18n } from '@/shared/i18n';
 import { useConsolidatedBalance, useMonthSummary } from '@/store/selectors';
 import { useWallet } from '@/store/wallet-store';
-import { Fab, FadeIn, Screen } from '@/ui/components';
+import { Fab, FadeIn, KobreBrand, Screen } from '@/ui/components';
 import {
   BudgetProgressCard,
   MonthSwitcher,
@@ -36,8 +36,9 @@ export default function DashboardScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        {/* Seletor de Período Discreto */}
-        <FadeIn>
+        {/* Cabeçalho da Marca Kobre + Seletor de Período */}
+        <FadeIn style={styles.topHeaderRow}>
+          <KobreBrand size={34} />
           <MonthSwitcher month={month} onChange={setMonth} />
         </FadeIn>
 
@@ -110,6 +111,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: 110,
     gap: spacing.xl,
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
   thinDivider: {
     height: 1,

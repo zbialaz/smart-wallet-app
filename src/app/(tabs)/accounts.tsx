@@ -13,6 +13,7 @@ import {
   ConfirmDialog,
   FadeIn,
   IconBadge,
+  KobreLogo,
   Screen,
 } from '@/ui/components';
 import { Text } from '@/ui/text';
@@ -44,7 +45,10 @@ export default function AccountsScreen() {
     <Screen>
       <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.xl, paddingBottom: 60 }}>
         <FadeIn>
-          <Text variant="title">{t.accounts.title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text variant="title">{t.accounts.title}</Text>
+            <KobreLogo size={30} />
+          </View>
           <Pressable
             onPress={toggleBalanceHidden}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
