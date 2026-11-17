@@ -1,4 +1,4 @@
-import type { Account } from '@/domains/accounts/account';
+simport type { Account } from '@/domains/accounts/account';
 import type { Category } from '@/domains/categories/category';
 import type { Transaction } from '@/domains/transactions/transaction';
 import { isValidISODate, parseDateBR, type ISODate } from '@/shared/date';
@@ -144,8 +144,8 @@ export function parseBankStatementText(
     : -1;
   const descColIndex = hasHeader
     ? firstCols.findIndex((c) =>
-        ['descrição', 'descricao', 'title', 'historico', 'histórico', 'lançamento', 'lancamento', 'memo'].includes(c),
-      )
+      ['descrição', 'descricao', 'title', 'historico', 'histórico', 'lançamento', 'lancamento', 'memo'].includes(c),
+    )
     : -1;
 
   dataLines.forEach((line, idx) => {
